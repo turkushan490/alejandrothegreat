@@ -12,7 +12,10 @@ RUN npm ci --omit=dev
 # ---- runtime stage: no build tools, smaller image ----
 FROM node:22-bookworm-slim
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+# ffmpeg as a real system package, not just the downloaded ffmpeg-static
+# binary - this is the version discord-player's ffmpeg resolver tries
+# first, and it's the most reliably compatible option in a Debian image.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=deps /app/node_modules ./node_modules

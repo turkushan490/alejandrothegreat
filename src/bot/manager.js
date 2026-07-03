@@ -6,6 +6,7 @@ import {
   SpotifyExtractor,
   VimeoExtractor,
 } from '@discord-player/extractor';
+import { FFmpeg } from '@discord-player/ffmpeg';
 import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { Player } from 'discord-player';
 import { YoutubeiExtractor } from 'discord-player-youtubei';
@@ -15,6 +16,29 @@ import { registerPlayerEvents } from './events/playerEvents.js';
 import interactionCreateEvent from './events/interactionCreate.js';
 import messageCreateEvent from './events/messageCreate.js';
 import readyEvent from './events/ready.js';
+
+// Runs once at startup so a broken audio pipeline (missing ffmpeg/opus)
+// shows up clearly in the logs instead of silently queueing tracks that
+// never actually play.
+let diagnosticsLogged = false;
+async function logAudioPipelineDiagnostics() {
+  if (diagnosticsLogged) return;
+  diagnosticsLogged = true;
+
+  const resolved = FFmpeg.resolveSafe();
+  if (resolved) {
+    console.log(`[audio] ffmpeg resolved: ${resolved.name} (${resolved.path}), version ${resolved.version}`);
+  } else {
+    console.error('[audio] Could not resolve an ffmpeg binary - playback will fail silently. Check that ffmpeg is installed in the container.');
+  }
+
+  try {
+    await import('@discord-player/opus');
+    console.log('[audio] @discord-player/opus loaded OK');
+  } catch (err) {
+    console.error('[audio] @discord-player/opus failed to load - playback will fail silently:', err.message);
+  }
+}
 
 // The bot is (re)started at runtime once credentials are saved via the
 // setup wizard, so there's no module-level singleton client - callers
@@ -53,6 +77,7 @@ export async function startBot() {
     }
 
     await stopBot();
+    await logAudioPipelineDiagnostics();
 
     const newClient = new Client({
       intents: [
