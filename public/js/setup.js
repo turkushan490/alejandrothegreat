@@ -56,6 +56,30 @@
     }
   });
 
+  function validateConfigBody(body) {
+    if (!/^\d{17,20}$/.test(body.discordClientId)) {
+      return 'Discord Client ID must be the numeric ID from the Discord Developer Portal (17-20 digits) - not a name, username, or anything else.';
+    }
+    if (body.discordClientSecret.length < 16) {
+      return 'Discord Client Secret looks too short - copy it again from OAuth2 -> General in the Discord Developer Portal.';
+    }
+    if (!body.discordToken.includes('.') || body.discordToken.length < 50) {
+      return "Discord Bot Token doesn't look like a real token - copy it again from the Bot tab.";
+    }
+    try {
+      new URL(body.discordRedirectUri);
+    } catch {
+      return 'Redirect URI must be a full URL, e.g. http://192.168.1.100:3005/auth/discord/callback';
+    }
+    if (body.spotifyClientId && !/^[a-zA-Z0-9]{16,40}$/.test(body.spotifyClientId)) {
+      return 'Spotify Client ID looks wrong - copy it again from the Spotify Developer Dashboard.';
+    }
+    if (body.spotifyClientSecret && !/^[a-zA-Z0-9]{16,40}$/.test(body.spotifyClientSecret)) {
+      return 'Spotify Client Secret looks wrong - copy it again from the Spotify Developer Dashboard.';
+    }
+    return null;
+  }
+
   document.getElementById('configForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('configError');
@@ -70,6 +94,13 @@
       spotifyClientSecret: document.getElementById('spotifyClientSecret').value.trim(),
       adminPassword: document.getElementById('newAdminPassword').value,
     };
+
+    const validationError = validateConfigBody(body);
+    if (validationError) {
+      errorEl.textContent = validationError;
+      errorEl.hidden = false;
+      return;
+    }
 
     try {
       await api('/api/setup/save', { method: 'POST', body: JSON.stringify(body) });

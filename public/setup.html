@@ -36,7 +36,7 @@
           <label for="discordToken">Bot token</label>
           <input type="password" id="discordToken" autocomplete="off" required>
           <label for="discordClientId">Client ID</label>
-          <input type="text" id="discordClientId" required>
+          <input type="text" id="discordClientId" inputmode="numeric" pattern="\d{17,20}" placeholder="e.g. 1234567890123456789" title="The numeric Client ID from OAuth2 -> General, 17-20 digits" required>
           <label for="discordClientSecret">Client secret</label>
           <input type="password" id="discordClientSecret" autocomplete="off" required>
           <label for="discordRedirectUri">OAuth redirect URI</label>

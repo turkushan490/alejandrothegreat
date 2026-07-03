@@ -15,6 +15,35 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// Discord client IDs (and every other Discord object ID) are numeric
+// snowflakes. Catching a value like "root" here means we never reach
+// Discord's OAuth endpoint with obviously-wrong data - that only ever
+// produced a cryptic error page.
+function validateBotConfig({ discordClientId, discordClientSecret, discordToken, discordRedirectUri, spotifyClientId, spotifyClientSecret }) {
+  if (!/^\d{17,20}$/.test(discordClientId)) {
+    return 'Discord Client ID must be the numeric ID from the Discord Developer Portal (17-20 digits), not an application name or anything else.';
+  }
+  if (discordClientSecret.length < 16) {
+    return 'Discord Client Secret looks too short - copy it again from OAuth2 -> General in the Discord Developer Portal.';
+  }
+  if (!discordToken.includes('.') || discordToken.length < 50) {
+    return "Discord Bot Token doesn't look like a real token - copy it again from the Bot tab in the Discord Developer Portal (it's long and contains dots).";
+  }
+  try {
+    const url = new URL(discordRedirectUri);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('bad protocol');
+  } catch {
+    return 'Redirect URI must be a full URL, e.g. http://192.168.1.100:3005/auth/discord/callback';
+  }
+  if (spotifyClientId && !/^[a-zA-Z0-9]{16,40}$/.test(spotifyClientId)) {
+    return 'Spotify Client ID looks wrong - copy it again from the Spotify Developer Dashboard.';
+  }
+  if (spotifyClientSecret && !/^[a-zA-Z0-9]{16,40}$/.test(spotifyClientSecret)) {
+    return 'Spotify Client Secret looks wrong - copy it again from the Spotify Developer Dashboard.';
+  }
+  return null;
+}
+
 setupRouter.get('/status', (req, res) => {
   const cfg = getBotConfig();
   res.json({
@@ -84,6 +113,19 @@ setupRouter.post('/save', async (req, res) => {
 
   if (!discordToken || !discordClientId || !discordClientSecret || !discordRedirectUri) {
     res.status(400).json({ error: 'Discord bot token, client ID, client secret, and redirect URI are all required.' });
+    return;
+  }
+
+  const validationError = validateBotConfig({
+    discordClientId,
+    discordClientSecret,
+    discordToken,
+    discordRedirectUri,
+    spotifyClientId: spotifyClientId || '',
+    spotifyClientSecret: spotifyClientSecret || '',
+  });
+  if (validationError) {
+    res.status(400).json({ error: validationError });
     return;
   }
 
