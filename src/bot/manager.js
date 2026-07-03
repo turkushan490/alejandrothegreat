@@ -109,7 +109,12 @@ export async function startBotInstance(botId) {
     newClient.commands = commands;
 
     const newPlayer = new Player(newClient);
-    await newPlayer.extractors.register(YoutubeiExtractor, {});
+    // generateWithPoToken solves a real YouTube proof-of-origin challenge
+    // (via bgutils-js) before requesting streams - without it, YouTube can
+    // return a track with no usable URL at all ("No valid URL to decipher"),
+    // which is silent from Discord's side: the bot joins voice and queues
+    // the track, but nothing ever plays.
+    await newPlayer.extractors.register(YoutubeiExtractor, { generateWithPoToken: true });
     await newPlayer.extractors.register(SpotifyExtractor, {
       clientId: bot.spotifyClientId || undefined,
       clientSecret: bot.spotifyClientSecret || undefined,
