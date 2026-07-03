@@ -38,6 +38,20 @@ async function logAudioPipelineDiagnostics() {
   } catch (err) {
     console.error('[audio] @discord-player/opus failed to load - playback will fail silently:', err.message);
   }
+
+  // yt-dlp is what actually pulls audio from YouTube. If it's missing or
+  // broken, playback fails silently, so surface its status at startup.
+  try {
+    const ytdl = (await import('youtube-dl-exec')).default;
+    const version = await ytdl('', { version: true }).catch(() => null);
+    if (version) {
+      console.log(`[audio] yt-dlp available: ${String(version).trim()}`);
+    } else {
+      console.error('[audio] yt-dlp did not respond to --version - YouTube playback may fail. Ensure python3 is installed in the container.');
+    }
+  } catch (err) {
+    console.error('[audio] yt-dlp check failed - YouTube playback may fail:', err.message);
+  }
 }
 
 // Multiple independent Discord bot instances can run from this one
@@ -109,12 +123,14 @@ export async function startBotInstance(botId) {
     newClient.commands = commands;
 
     const newPlayer = new Player(newClient);
-    // generateWithPoToken solves a real YouTube proof-of-origin challenge
-    // (via bgutils-js) before requesting streams - without it, YouTube can
-    // return a track with no usable URL at all ("No valid URL to decipher"),
-    // which is silent from Discord's side: the bot joins voice and queues
-    // the track, but nothing ever plays.
-    await newPlayer.extractors.register(YoutubeiExtractor, { generateWithPoToken: true });
+    // Stream audio via yt-dlp (useYoutubeDL) instead of youtubei.js's own
+    // internal client. YouTube now frequently hands youtubei.js track
+    // metadata with no usable stream URL ("No valid URL to decipher"),
+    // which is silent from Discord's side - the bot joins voice, queues the
+    // track, and plays nothing. yt-dlp reliably extracts a real audio URL
+    // and self-updates on startup, so it keeps working as YouTube changes.
+    // youtubei.js is still used for search/metadata, just not for streaming.
+    await newPlayer.extractors.register(YoutubeiExtractor, { useYoutubeDL: true });
     await newPlayer.extractors.register(SpotifyExtractor, {
       clientId: bot.spotifyClientId || undefined,
       clientSecret: bot.spotifyClientSecret || undefined,

@@ -141,5 +141,5 @@ necessarily on day one.
 ## Known limitations (v1)
 
 - Sessions are stored in memory — restarting the container logs everyone out of the dashboard (the admin password and bot credentials themselves persist fine, since those live in the database).
-- YouTube playback relies on `discord-player-youtubei`/`yt-dlp`, both of which can break when YouTube changes things; if playback stops working, check for updates to those packages first.
+- YouTube audio is streamed via `yt-dlp` (the most reliable extractor), which auto-updates itself on container startup. If playback ever stops working after a YouTube change, restarting the container pulls the latest yt-dlp and usually fixes it. The startup logs print the resolved `ffmpeg`, `opus`, and `yt-dlp` versions so you can confirm the audio pipeline is healthy.
 - Docker images are only tested for `linux/amd64` (standard Unraid hardware).
