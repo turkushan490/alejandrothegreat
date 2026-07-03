@@ -140,7 +140,6 @@ necessarily on day one.
 
 ## Known limitations (v1)
 
-- **If you configured a bot before multi-bot support was added**, you'll need to re-enter its credentials once through `/setup.html` after updating — the database table storing bot credentials changed shape to support a list of bots instead of just one, and there's no automatic migration from the old single-bot format.
 - Sessions are stored in memory — restarting the container logs everyone out of the dashboard (the admin password and bot credentials themselves persist fine, since those live in the database).
 - YouTube playback relies on `discord-player-youtubei`/`yt-dlp`, both of which can break when YouTube changes things; if playback stops working, check for updates to those packages first.
 - Docker images are only tested for `linux/amd64` (standard Unraid hardware).

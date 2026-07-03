@@ -38,6 +38,27 @@ db.exec(`
   );
 `);
 
+// --- app-level config: session secret (auto-generated) + admin password ---
+// Defined early since the one-time migration below needs it.
+
+function ensureAppConfig() {
+  const row = db.prepare('SELECT * FROM app_config WHERE id = 1').get();
+  if (row) return row;
+  const secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT INTO app_config (id, session_secret, admin_password_hash) VALUES (1, ?, NULL)').run(secret);
+  return db.prepare('SELECT * FROM app_config WHERE id = 1').get();
+}
+
+export const sessionSecret = ensureAppConfig().session_secret;
+
+export function getAdminPasswordHash() {
+  return db.prepare('SELECT admin_password_hash FROM app_config WHERE id = 1').get()?.admin_password_hash || null;
+}
+
+export function setAdminPasswordHash(hash) {
+  db.prepare('UPDATE app_config SET admin_password_hash = ? WHERE id = 1').run(hash);
+}
+
 // --- guild settings ---
 
 const GUILD_DEFAULTS = { controlMode: 'everyone', djRoleId: null, defaultVolume: 100, prefix: '!' };
@@ -159,28 +180,43 @@ export function getPrimaryBot() {
   return bots[0] || null;
 }
 
-// --- app-level config: session secret (auto-generated) + admin password ---
-
-function ensureAppConfig() {
-  const row = db.prepare('SELECT * FROM app_config WHERE id = 1').get();
-  if (row) return row;
-  const secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-  db.prepare('INSERT INTO app_config (id, session_secret, admin_password_hash) VALUES (1, ?, NULL)').run(secret);
-  return db.prepare('SELECT * FROM app_config WHERE id = 1').get();
-}
-
-export const sessionSecret = ensureAppConfig().session_secret;
-
-export function getAdminPasswordHash() {
-  return db.prepare('SELECT admin_password_hash FROM app_config WHERE id = 1').get()?.admin_password_hash || null;
-}
-
-export function setAdminPasswordHash(hash) {
-  db.prepare('UPDATE app_config SET admin_password_hash = ? WHERE id = 1').run(hash);
-}
-
 export function isAppConfigured() {
   return Boolean(getAdminPasswordHash()) && listBots().length > 0;
 }
+
+// --- one-time migration from the pre-multi-bot schema ---
+// Earlier versions stored a single bot in a "bot_config" table. If that
+// table is still sitting in this database file, carry its data forward
+// into the new "bots" table automatically instead of making anyone
+// re-enter their token.
+function migrateLegacyBotConfig() {
+  const hasLegacyTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'bot_config'").get();
+  if (!hasLegacyTable) return;
+
+  const legacy = db.prepare('SELECT * FROM bot_config WHERE id = 1').get();
+
+  if (legacy?.discord_token && listBotsStmt.all().length === 0) {
+    insertBotStmt.run({
+      id: crypto.randomUUID(),
+      name: 'Migrated bot',
+      discordToken: legacy.discord_token,
+      discordClientId: legacy.discord_client_id,
+      discordClientSecret: legacy.discord_client_secret,
+      discordRedirectUri: legacy.discord_redirect_uri,
+      spotifyClientId: legacy.spotify_client_id || '',
+      spotifyClientSecret: legacy.spotify_client_secret || '',
+      enabled: 1,
+    });
+    console.log('[db] Migrated your existing bot configuration to the new multi-bot format automatically.');
+  }
+
+  if (legacy?.admin_password_hash && !getAdminPasswordHash()) {
+    setAdminPasswordHash(legacy.admin_password_hash);
+  }
+
+  db.exec('DROP TABLE bot_config');
+}
+
+migrateLegacyBotConfig();
 
 export default db;
