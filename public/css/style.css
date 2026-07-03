@@ -1,0 +1,185 @@
+:root {
+  --bg: #1e1f22;
+  --surface: #2b2d31;
+  --surface-hi: #313338;
+  --text: #f2f3f5;
+  --muted: #949ba4;
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --danger: #da373c;
+  --border: #3f4147;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Roboto, -apple-system, sans-serif;
+}
+
+.center-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.login-card { text-align: center; max-width: 360px; }
+.login-card h1 { margin-top: 0; }
+.subtitle { color: var(--muted); }
+
+.btn {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface-hi);
+  color: var(--text);
+}
+
+.btn-discord { background: var(--accent); border-color: var(--accent); color: white; }
+.btn-discord:hover { background: var(--accent-hover); }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background: var(--surface-hi);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { font-weight: 700; font-size: 18px; color: var(--text); text-decoration: none; }
+
+.user-area { display: flex; align-items: center; gap: 10px; }
+
+.container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+.guild-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.guild-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color .15s;
+}
+
+.guild-card:hover { border-color: var(--accent); }
+
+.guild-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.guild-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+.playing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #23a55a;
+  display: inline-block;
+  margin-left: 6px;
+}
+
+.muted { color: var(--muted); }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.controls button {
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.controls button:hover { border-color: var(--accent); }
+
+.controls select {
+  background: var(--surface-hi);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.volume-row { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+#searchForm { display: flex; gap: 10px; }
+
+#searchInput {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-hi);
+  color: var(--text);
+}
+
+#searchForm button {
+  background: var(--accent);
+  border: none;
+  color: white;
+  border-radius: 8px;
+  padding: 0 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.queue-list { list-style: none; padding: 0; margin: 12px 0 0; }
+
+.queue-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.queue-list li:last-child { border-bottom: none; }
+
+.track-title { font-weight: 600; }
+.track-author { color: var(--muted); font-size: 13px; }
+
+.error-banner {
+  background: rgba(218, 55, 60, .15);
+  border: 1px solid var(--danger);
+  color: #ff8a8a;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}

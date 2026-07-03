@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alejandrothegreat</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/dashboard.html">&larr; Alejandrothegreat</a>
+  <div class="user-area" id="userArea"></div>
+</header>
+<main class="container">
+  <section class="now-playing card" id="nowPlaying">
+    <p class="muted">Loading...</p>
+  </section>
+
+  <section class="controls card" id="controls" hidden>
+    <button id="btnPause" title="Pause">Pause</button>
+    <button id="btnResume" title="Resume">Resume</button>
+    <button id="btnSkip" title="Skip">Skip</button>
+    <button id="btnStop" title="Stop">Stop</button>
+    <button id="btnShuffle" title="Shuffle">Shuffle</button>
+    <select id="loopMode">
+      <option value="off">Loop: Off</option>
+      <option value="track">Loop: Track</option>
+      <option value="queue">Loop: Queue</option>
+    </select>
+    <div class="volume-row">
+      <label for="volume">Volume</label>
+      <input type="range" id="volume" min="0" max="100" value="100">
+      <span id="volumeValue">100</span>
+    </div>
+  </section>
+
+  <section class="search card">
+    <form id="searchForm">
+      <input type="text" id="searchInput" placeholder="Spotify link, YouTube link, or search terms" autocomplete="off">
+      <button type="submit">Play</button>
+    </form>
+  </section>
+
+  <section class="queue card">
+    <h3>Queue</h3>
+    <ol id="queueList" class="queue-list"></ol>
+  </section>
+</main>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/guild.js"></script>
+</body>
+</html>
