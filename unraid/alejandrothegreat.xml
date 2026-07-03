@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>alejandrothegreat</Name>
+  <Repository>ghcr.io/turkushan490/alejandrothegreat:latest</Repository>
+  <Registry>https://github.com/turkushan490/alejandrothegreat/pkgs/container/alejandrothegreat</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/turkushan490/alejandrothegreat/issues</Support>
+  <Project>https://github.com/turkushan490/alejandrothegreat</Project>
+  <Overview>Discord music bot with a web dashboard, called Alejandrothegreat. Paste a Spotify link/playlist or just search terms and it plays the matching audio from YouTube (Spotify doesn't allow third-party bots to stream its own audio). Control it with Discord slash commands, `!`-prefix text commands, or by logging into the web dashboard with your Discord account.&#13;&#10;&#13;&#10;Everything - the Discord bot token, Spotify credentials, and an admin password - is configured through a setup wizard at http://[IP]:[PORT:3000]/setup.html after you start the container. No environment variables required.&#13;&#10;&#13;&#10;You'll need a free Discord application (discord.com/developers/applications) and, optionally, a free Spotify application (developer.spotify.com/dashboard) before running the wizard - see the project README for the exact steps.</Overview>
+  <Category>MediaApp:Music</Category>
+  <WebUI>http://[IP]:[PORT:3000]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/turkushan490/alejandrothegreat/master/unraid/alejandrothegreat.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/turkushan490/alejandrothegreat/master/unraid/icon.svg</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <DonateText/>
+  <DonateLink/>
+  <DonateImg/>
+  <MinVer/>
+  <Description>Discord music bot with a web dashboard. Search Spotify links/playlists (audio streams from YouTube), control playback via slash commands, `!` text commands, or the browser dashboard. Configure the Discord bot token and Spotify credentials through the built-in setup wizard - no environment variables required.</Description>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>3000</HostPort>
+        <ContainerPort>3000</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/alejandrothegreat/data</HostDir>
+      <ContainerDir>/app/data</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <Environment/>
+  <Labels/>
+  <Config Name="WebUI Port" Target="3000" Default="3000" Mode="tcp" Description="Port for the web dashboard and setup wizard" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="Data" Target="/app/data" Default="/mnt/user/appdata/alejandrothegreat/data" Mode="rw" Description="Stores the SQLite database with your bot credentials, admin password, and per-server settings. Back this up." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/alejandrothegreat/data</Config>
+  <Config Name="Timezone" Target="TZ" Default="UTC" Mode="" Description="Container timezone, e.g. America/New_York" Type="Variable" Display="advanced" Required="false" Mask="false">UTC</Config>
+</Container>
