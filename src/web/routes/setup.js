@@ -1,8 +1,17 @@
 import { PermissionFlagsBits, PermissionsBitField } from 'discord.js';
 import { Router } from 'express';
-import { startBot } from '../../bot/manager.js';
+import { restartBotInstance, startBotInstance, stopBotInstance } from '../../bot/manager.js';
 import { envDefaults } from '../../config.js';
-import { getBotConfig, isBotConfigured, saveBotConfig } from '../../db.js';
+import {
+  createBot,
+  deleteBot,
+  getAdminPasswordHash,
+  getBot,
+  isAppConfigured,
+  listBots,
+  setAdminPasswordHash,
+  updateBot,
+} from '../../db.js';
 import { hashPassword, verifyPassword } from '../adminAuth.js';
 
 export const setupRouter = Router();
@@ -17,9 +26,8 @@ function requireAdmin(req, res, next) {
 
 // Discord client IDs (and every other Discord object ID) are numeric
 // snowflakes. Catching a value like "root" here means we never reach
-// Discord's OAuth endpoint with obviously-wrong data - that only ever
-// produced a cryptic error page.
-function validateBotConfig({ discordClientId, discordClientSecret, discordToken, discordRedirectUri, spotifyClientId, spotifyClientSecret }) {
+// Discord's OAuth endpoint with obviously-wrong data.
+function validateBotFields({ discordClientId, discordClientSecret, discordToken, discordRedirectUri, spotifyClientId, spotifyClientSecret }) {
   if (!/^\d{17,20}$/.test(discordClientId)) {
     return 'Discord Client ID must be the numeric ID from the Discord Developer Portal (17-20 digits), not an application name or anything else.';
   }
@@ -44,12 +52,21 @@ function validateBotConfig({ discordClientId, discordClientSecret, discordToken,
   return null;
 }
 
+function botSummary(bot, isPrimary) {
+  return {
+    id: bot.id,
+    name: bot.name,
+    discordClientId: bot.discordClientId,
+    hasSpotify: Boolean(bot.spotifyClientId),
+    enabled: bot.enabled,
+    isPrimary,
+  };
+}
+
 setupRouter.get('/status', (req, res) => {
-  const cfg = getBotConfig();
   res.json({
-    configured: isBotConfigured(),
+    configured: isAppConfigured(),
     isAdmin: Boolean(req.session.isAdmin),
-    discordClientId: cfg?.discordClientId || '',
   });
 });
 
@@ -61,25 +78,13 @@ setupRouter.get('/defaults', (req, res) => {
   });
 });
 
-setupRouter.get('/config', requireAdmin, (req, res) => {
-  const cfg = getBotConfig() || {};
-  res.json({
-    discordToken: cfg.discordToken || '',
-    discordClientId: cfg.discordClientId || '',
-    discordClientSecret: cfg.discordClientSecret || '',
-    discordRedirectUri: cfg.discordRedirectUri || '',
-    spotifyClientId: cfg.spotifyClientId || '',
-    spotifyClientSecret: cfg.spotifyClientSecret || '',
-  });
-});
-
 setupRouter.post('/login', (req, res) => {
-  const cfg = getBotConfig();
-  if (!cfg?.adminPasswordHash) {
+  const hash = getAdminPasswordHash();
+  if (!hash) {
     res.status(400).json({ error: 'Not set up yet.' });
     return;
   }
-  if (!verifyPassword(req.body.password, cfg.adminPasswordHash)) {
+  if (!verifyPassword(req.body.password, hash)) {
     res.status(401).json({ error: 'Wrong password.' });
     return;
   }
@@ -92,31 +97,49 @@ setupRouter.post('/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-setupRouter.post('/save', async (req, res) => {
-  const cfg = getBotConfig();
-  const firstRun = !cfg?.adminPasswordHash;
+setupRouter.post('/admin-password', requireAdmin, (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 8) {
+    res.status(400).json({ error: 'Choose a password at least 8 characters long.' });
+    return;
+  }
+  setAdminPasswordHash(hashPassword(newPassword));
+  res.json({ ok: true });
+});
 
-  if (!firstRun && !req.session.isAdmin) {
+// --- bots ---
+
+setupRouter.get('/bots', requireAdmin, (req, res) => {
+  const bots = listBots();
+  res.json({ bots: bots.map((b, i) => botSummary(b, i === 0)) });
+});
+
+setupRouter.get('/bots/:id', requireAdmin, (req, res) => {
+  const bot = getBot(req.params.id);
+  if (!bot) {
+    res.status(404).json({ error: 'Bot not found.' });
+    return;
+  }
+  res.json({ bot });
+});
+
+setupRouter.post('/bots', async (req, res) => {
+  const existingBots = listBots();
+  const firstEver = existingBots.length === 0 && !getAdminPasswordHash();
+
+  if (!firstEver && !req.session.isAdmin) {
     res.status(403).json({ error: 'Admin login required.' });
     return;
   }
 
-  const {
-    discordToken,
-    discordClientId,
-    discordClientSecret,
-    discordRedirectUri,
-    spotifyClientId,
-    spotifyClientSecret,
-    adminPassword,
-  } = req.body;
+  const { name, discordToken, discordClientId, discordClientSecret, discordRedirectUri, spotifyClientId, spotifyClientSecret, adminPassword } = req.body;
 
   if (!discordToken || !discordClientId || !discordClientSecret || !discordRedirectUri) {
     res.status(400).json({ error: 'Discord bot token, client ID, client secret, and redirect URI are all required.' });
     return;
   }
 
-  const validationError = validateBotConfig({
+  const validationError = validateBotFields({
     discordClientId,
     discordClientSecret,
     discordToken,
@@ -129,35 +152,119 @@ setupRouter.post('/save', async (req, res) => {
     return;
   }
 
-  if (firstRun && !adminPassword) {
+  if (firstEver && !adminPassword) {
     res.status(400).json({ error: 'Choose an admin password to protect these settings.' });
     return;
   }
 
-  saveBotConfig({
+  const bot = createBot({
+    name: (name || '').trim() || `Bot ${existingBots.length + 1}`,
     discordToken,
     discordClientId,
     discordClientSecret,
     discordRedirectUri,
     spotifyClientId: spotifyClientId || '',
     spotifyClientSecret: spotifyClientSecret || '',
-    adminPasswordHash: adminPassword ? hashPassword(adminPassword) : cfg.adminPasswordHash,
+    enabled: true,
   });
+
+  if (firstEver) {
+    setAdminPasswordHash(hashPassword(adminPassword));
+  }
   req.session.isAdmin = true;
 
   try {
-    await startBot();
-    res.json({ ok: true });
+    await startBotInstance(bot.id);
+    res.json({ ok: true, bot: botSummary(bot, existingBots.length === 0) });
   } catch (err) {
-    console.error('[setup] saved config but failed to start the bot:', err);
+    console.error(`[setup] bot "${bot.name}" saved but failed to start:`, err);
     res.status(500).json({ error: `Saved, but the bot failed to log in: ${err.message}` });
   }
 });
 
-setupRouter.get('/invite-link', (req, res) => {
-  const cfg = getBotConfig();
-  if (!cfg?.discordClientId) {
-    res.status(400).json({ error: 'Bot not configured yet.' });
+setupRouter.put('/bots/:id', requireAdmin, async (req, res) => {
+  const existing = getBot(req.params.id);
+  if (!existing) {
+    res.status(404).json({ error: 'Bot not found.' });
+    return;
+  }
+
+  const { name, discordToken, discordClientId, discordClientSecret, discordRedirectUri, spotifyClientId, spotifyClientSecret } = req.body;
+
+  if (!discordToken || !discordClientId || !discordClientSecret || !discordRedirectUri) {
+    res.status(400).json({ error: 'Discord bot token, client ID, client secret, and redirect URI are all required.' });
+    return;
+  }
+
+  const validationError = validateBotFields({
+    discordClientId,
+    discordClientSecret,
+    discordToken,
+    discordRedirectUri,
+    spotifyClientId: spotifyClientId || '',
+    spotifyClientSecret: spotifyClientSecret || '',
+  });
+  if (validationError) {
+    res.status(400).json({ error: validationError });
+    return;
+  }
+
+  const bot = updateBot(req.params.id, {
+    name: (name || '').trim() || existing.name,
+    discordToken,
+    discordClientId,
+    discordClientSecret,
+    discordRedirectUri,
+    spotifyClientId: spotifyClientId || '',
+    spotifyClientSecret: spotifyClientSecret || '',
+  });
+
+  try {
+    if (bot.enabled) await restartBotInstance(bot.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(`[setup] bot "${bot.name}" updated but failed to restart:`, err);
+    res.status(500).json({ error: `Saved, but the bot failed to log in: ${err.message}` });
+  }
+});
+
+setupRouter.post('/bots/:id/toggle', requireAdmin, async (req, res) => {
+  const bot = getBot(req.params.id);
+  if (!bot) {
+    res.status(404).json({ error: 'Bot not found.' });
+    return;
+  }
+  const nextEnabled = !bot.enabled;
+  updateBot(bot.id, { enabled: nextEnabled });
+
+  try {
+    if (nextEnabled) {
+      await startBotInstance(bot.id);
+    } else {
+      await stopBotInstance(bot.id);
+    }
+    res.json({ ok: true, enabled: nextEnabled });
+  } catch (err) {
+    console.error(`[setup] failed to toggle bot "${bot.name}":`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+setupRouter.delete('/bots/:id', requireAdmin, async (req, res) => {
+  const bot = getBot(req.params.id);
+  if (!bot) {
+    res.status(404).json({ error: 'Bot not found.' });
+    return;
+  }
+  await stopBotInstance(bot.id);
+  deleteBot(bot.id);
+  res.json({ ok: true });
+});
+
+setupRouter.get('/bots/:id/invite-link', requireAdmin, (req, res) => {
+  const bot = getBot(req.params.id);
+  if (!bot) {
+    res.status(404).json({ error: 'Bot not found.' });
     return;
   }
   const permissions = new PermissionsBitField([
@@ -170,6 +277,6 @@ setupRouter.get('/invite-link', (req, res) => {
     PermissionFlagsBits.UseApplicationCommands,
   ]).bitfield.toString();
 
-  const url = `https://discord.com/oauth2/authorize?client_id=${cfg.discordClientId}&scope=${encodeURIComponent('bot applications.commands')}&permissions=${permissions}`;
+  const url = `https://discord.com/oauth2/authorize?client_id=${bot.discordClientId}&scope=${encodeURIComponent('bot applications.commands')}&permissions=${permissions}`;
   res.json({ url });
 });

@@ -18,20 +18,23 @@ db.exec(`
     prefix TEXT NOT NULL DEFAULT '!'
   );
 
-  CREATE TABLE IF NOT EXISTS bot_config (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    discord_token TEXT,
-    discord_client_id TEXT,
-    discord_client_secret TEXT,
-    discord_redirect_uri TEXT,
+  CREATE TABLE IF NOT EXISTS bots (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    discord_token TEXT NOT NULL,
+    discord_client_id TEXT NOT NULL,
+    discord_client_secret TEXT NOT NULL,
+    discord_redirect_uri TEXT NOT NULL,
     spotify_client_id TEXT,
     spotify_client_secret TEXT,
-    admin_password_hash TEXT
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
   );
 
   CREATE TABLE IF NOT EXISTS app_config (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    session_secret TEXT NOT NULL
+    session_secret TEXT NOT NULL,
+    admin_password_hash TEXT
   );
 `);
 
@@ -69,67 +72,115 @@ export function updateGuildSettings(guildId, patch) {
   return next;
 }
 
-export function findGuildByPrefix(prefix) {
-  return db.prepare('SELECT guild_id FROM guild_settings WHERE prefix = ?').all(prefix);
-}
+// --- bots (each is an independent Discord application/token, configured via the setup wizard) ---
 
-// --- bot config (Discord/Spotify credentials, set via the setup wizard) ---
-
-const selectBotConfigStmt = db.prepare('SELECT * FROM bot_config WHERE id = 1');
-const upsertBotConfigStmt = db.prepare(`
-  INSERT INTO bot_config (
-    id, discord_token, discord_client_id, discord_client_secret, discord_redirect_uri,
-    spotify_client_id, spotify_client_secret, admin_password_hash
-  ) VALUES (
-    1, @discordToken, @discordClientId, @discordClientSecret, @discordRedirectUri,
-    @spotifyClientId, @spotifyClientSecret, @adminPasswordHash
-  )
-  ON CONFLICT(id) DO UPDATE SET
-    discord_token = excluded.discord_token,
-    discord_client_id = excluded.discord_client_id,
-    discord_client_secret = excluded.discord_client_secret,
-    discord_redirect_uri = excluded.discord_redirect_uri,
-    spotify_client_id = excluded.spotify_client_id,
-    spotify_client_secret = excluded.spotify_client_secret,
-    admin_password_hash = excluded.admin_password_hash
-`);
-
-export function getBotConfig() {
-  const row = selectBotConfigStmt.get();
+function rowToBot(row) {
   if (!row) return null;
   return {
+    id: row.id,
+    name: row.name,
     discordToken: row.discord_token,
     discordClientId: row.discord_client_id,
     discordClientSecret: row.discord_client_secret,
     discordRedirectUri: row.discord_redirect_uri,
     spotifyClientId: row.spotify_client_id,
     spotifyClientSecret: row.spotify_client_secret,
-    adminPasswordHash: row.admin_password_hash,
+    enabled: Boolean(row.enabled),
+    createdAt: row.created_at,
   };
 }
 
-export function isBotConfigured() {
-  const cfg = getBotConfig();
-  return Boolean(cfg?.discordToken && cfg?.adminPasswordHash);
+const listBotsStmt = db.prepare('SELECT * FROM bots ORDER BY created_at ASC, rowid ASC');
+const getBotStmt = db.prepare('SELECT * FROM bots WHERE id = ?');
+const insertBotStmt = db.prepare(`
+  INSERT INTO bots (
+    id, name, discord_token, discord_client_id, discord_client_secret, discord_redirect_uri,
+    spotify_client_id, spotify_client_secret, enabled
+  ) VALUES (
+    @id, @name, @discordToken, @discordClientId, @discordClientSecret, @discordRedirectUri,
+    @spotifyClientId, @spotifyClientSecret, @enabled
+  )
+`);
+const updateBotStmt = db.prepare(`
+  UPDATE bots SET
+    name = @name,
+    discord_token = @discordToken,
+    discord_client_id = @discordClientId,
+    discord_client_secret = @discordClientSecret,
+    discord_redirect_uri = @discordRedirectUri,
+    spotify_client_id = @spotifyClientId,
+    spotify_client_secret = @spotifyClientSecret,
+    enabled = @enabled
+  WHERE id = @id
+`);
+const deleteBotStmt = db.prepare('DELETE FROM bots WHERE id = ?');
+
+export function listBots() {
+  return listBotsStmt.all().map(rowToBot);
 }
 
-export function saveBotConfig(patch) {
-  const current = getBotConfig() || {};
-  const next = { ...current, ...patch };
-  upsertBotConfigStmt.run(next);
-  return next;
+export function getBot(id) {
+  return rowToBot(getBotStmt.get(id));
 }
 
-// --- app-level session secret (auto-generated once, persisted) ---
+export function createBot(data) {
+  const id = crypto.randomUUID();
+  insertBotStmt.run({
+    id,
+    name: data.name,
+    discordToken: data.discordToken,
+    discordClientId: data.discordClientId,
+    discordClientSecret: data.discordClientSecret,
+    discordRedirectUri: data.discordRedirectUri,
+    spotifyClientId: data.spotifyClientId || '',
+    spotifyClientSecret: data.spotifyClientSecret || '',
+    enabled: data.enabled === false ? 0 : 1,
+  });
+  return getBot(id);
+}
 
-function ensureSessionSecret() {
-  const row = db.prepare('SELECT session_secret FROM app_config WHERE id = 1').get();
-  if (row) return row.session_secret;
+export function updateBot(id, patch) {
+  const current = getBot(id);
+  if (!current) throw new Error('Bot not found');
+  const next = { ...current, ...patch, id };
+  updateBotStmt.run({ ...next, enabled: next.enabled ? 1 : 0 });
+  return getBot(id);
+}
+
+export function deleteBot(id) {
+  deleteBotStmt.run(id);
+}
+
+// The first bot ever added is used as the Discord application for web
+// dashboard login (OAuth needs exactly one client_id/secret pair) -
+// every configured bot still shows up in the dashboard once logged in.
+export function getPrimaryBot() {
+  const bots = listBots();
+  return bots[0] || null;
+}
+
+// --- app-level config: session secret (auto-generated) + admin password ---
+
+function ensureAppConfig() {
+  const row = db.prepare('SELECT * FROM app_config WHERE id = 1').get();
+  if (row) return row;
   const secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-  db.prepare('INSERT INTO app_config (id, session_secret) VALUES (1, ?)').run(secret);
-  return secret;
+  db.prepare('INSERT INTO app_config (id, session_secret, admin_password_hash) VALUES (1, ?, NULL)').run(secret);
+  return db.prepare('SELECT * FROM app_config WHERE id = 1').get();
 }
 
-export const sessionSecret = ensureSessionSecret();
+export const sessionSecret = ensureAppConfig().session_secret;
+
+export function getAdminPasswordHash() {
+  return db.prepare('SELECT admin_password_hash FROM app_config WHERE id = 1').get()?.admin_password_hash || null;
+}
+
+export function setAdminPasswordHash(hash) {
+  db.prepare('UPDATE app_config SET admin_password_hash = ? WHERE id = 1').run(hash);
+}
+
+export function isAppConfigured() {
+  return Boolean(getAdminPasswordHash()) && listBots().length > 0;
+}
 
 export default db;

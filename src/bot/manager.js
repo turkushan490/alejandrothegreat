@@ -10,7 +10,7 @@ import { FFmpeg } from '@discord-player/ffmpeg';
 import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { Player } from 'discord-player';
 import { YoutubeiExtractor } from 'discord-player-youtubei';
-import { getBotConfig } from '../db.js';
+import { getBot, listBots } from '../db.js';
 import { commands } from './commands/index.js';
 import { registerPlayerEvents } from './events/playerEvents.js';
 import interactionCreateEvent from './events/interactionCreate.js';
@@ -40,43 +40,62 @@ async function logAudioPipelineDiagnostics() {
   }
 }
 
-// The bot is (re)started at runtime once credentials are saved via the
-// setup wizard, so there's no module-level singleton client - callers
-// always go through getClient()/getPlayer() to get the current instance.
-let client = null;
-let player = null;
-let startPromise = null;
+// Multiple independent Discord bot instances can run from this one
+// container/process - each bot has its own Client + Player, keyed by its
+// database id. There's no single "the bot" anymore; every caller resolves
+// the instance it needs either by botId directly or by which guild it
+// controls (see findInstanceForGuild).
+const instances = new Map(); // botId -> { client, player }
+const startPromises = new Map(); // botId -> in-flight start promise
 
-export function getClient() {
-  return client;
+export function getClient(botId) {
+  return instances.get(botId)?.client || null;
 }
 
-export function getPlayer() {
-  return player;
+export function getPlayer(botId) {
+  return instances.get(botId)?.player || null;
 }
 
-export function isRunning() {
-  return Boolean(client?.isReady?.());
+export function getAllInstances() {
+  return [...instances.entries()].map(([botId, inst]) => ({ botId, ...inst }));
 }
 
-export async function stopBot() {
-  if (client) {
-    await client.destroy();
+export function isInstanceRunning(botId) {
+  return Boolean(instances.get(botId)?.client?.isReady?.());
+}
+
+// Finds whichever running bot instance is actually a member of the given
+// guild. Playback actions and web routes are guild-scoped, not bot-scoped,
+// so this is the one lookup that makes multi-bot mostly transparent to
+// the rest of the app.
+export function findInstanceForGuild(guildId) {
+  for (const [botId, inst] of instances) {
+    if (inst.client.guilds.cache.has(guildId)) {
+      return { botId, ...inst };
+    }
   }
-  client = null;
-  player = null;
+  return null;
 }
 
-export async function startBot() {
-  if (startPromise) return startPromise;
+export async function stopBotInstance(botId) {
+  const inst = instances.get(botId);
+  if (inst) {
+    await inst.client.destroy();
+  }
+  instances.delete(botId);
+}
 
-  startPromise = (async () => {
-    const cfg = getBotConfig();
-    if (!cfg?.discordToken || !cfg?.discordClientId) {
-      throw new Error('Bot is not configured yet. Visit /setup.html first.');
+export async function startBotInstance(botId) {
+  if (startPromises.has(botId)) return startPromises.get(botId);
+
+  const promise = (async () => {
+    const bot = getBot(botId);
+    if (!bot) throw new Error('Bot not found.');
+    if (!bot.discordToken || !bot.discordClientId) {
+      throw new Error('Bot is missing credentials.');
     }
 
-    await stopBot();
+    await stopBotInstance(botId);
     await logAudioPipelineDiagnostics();
 
     const newClient = new Client({
@@ -92,8 +111,8 @@ export async function startBot() {
     const newPlayer = new Player(newClient);
     await newPlayer.extractors.register(YoutubeiExtractor, {});
     await newPlayer.extractors.register(SpotifyExtractor, {
-      clientId: cfg.spotifyClientId || undefined,
-      clientSecret: cfg.spotifyClientSecret || undefined,
+      clientId: bot.spotifyClientId || undefined,
+      clientSecret: bot.spotifyClientSecret || undefined,
     });
     await newPlayer.extractors.register(AppleMusicExtractor, {});
     await newPlayer.extractors.register(SoundCloudExtractor, {});
@@ -106,30 +125,37 @@ export async function startBot() {
     newClient.on('interactionCreate', interactionCreateEvent);
     newClient.on('messageCreate', messageCreateEvent);
 
-    client = newClient;
-    player = newPlayer;
+    instances.set(botId, { client: newClient, player: newPlayer });
 
-    await client.login(cfg.discordToken);
-    await deploySlashCommands(cfg.discordToken, cfg.discordClientId);
+    await newClient.login(bot.discordToken);
+    await deploySlashCommands(bot.discordToken, bot.discordClientId);
   })();
 
+  startPromises.set(botId, promise);
   try {
-    await startPromise;
+    await promise;
   } finally {
-    startPromise = null;
+    startPromises.delete(botId);
   }
 }
 
-export async function tryAutoStart() {
-  const cfg = getBotConfig();
-  if (cfg?.discordToken && cfg?.discordClientId) {
+export async function restartBotInstance(botId) {
+  await stopBotInstance(botId);
+  await startBotInstance(botId);
+}
+
+export async function startAllEnabledBots() {
+  const bots = listBots().filter((b) => b.enabled);
+  if (bots.length === 0) {
+    console.log('[bot] No bots configured yet. Visit /setup.html to add one.');
+    return;
+  }
+  for (const bot of bots) {
     try {
-      await startBot();
+      await startBotInstance(bot.id);
     } catch (err) {
-      console.error('[bot] auto-start failed:', err);
+      console.error(`[bot] "${bot.name}" (${bot.id}) failed to start:`, err);
     }
-  } else {
-    console.log('[bot] Not configured yet. Visit /setup.html to add your Discord bot token.');
   }
 }
 

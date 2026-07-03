@@ -1,41 +1,128 @@
 (async () => {
   const passwordSection = document.getElementById('passwordSection');
-  const configSection = document.getElementById('configSection');
+  const botsSection = document.getElementById('botsSection');
+  const botFormSection = document.getElementById('botFormSection');
   const successSection = document.getElementById('successSection');
+  const botForm = document.getElementById('botForm');
+  const adminPasswordFieldset = document.getElementById('adminPasswordFieldset');
+  const cancelBotFormBtn = document.getElementById('cancelBotFormBtn');
+
+  let formMode = 'create'; // 'create-first' | 'create' | 'edit'
+  let editingId = null;
+
+  function showOnly(section) {
+    for (const el of [passwordSection, botsSection, botFormSection, successSection]) {
+      el.hidden = el !== section;
+    }
+  }
+
+  function clearForm() {
+    botForm.reset();
+    document.getElementById('configError').hidden = true;
+  }
 
   async function prefillDefaults() {
     const defaults = await api('/api/setup/defaults');
-    document.getElementById('discordClientId').value = defaults.discordClientId || '';
     document.getElementById('discordRedirectUri').value = defaults.discordRedirectUri || '';
     document.getElementById('spotifyClientId').value = defaults.spotifyClientId || '';
+    if (formMode === 'create-first') {
+      document.getElementById('discordClientId').value = defaults.discordClientId || '';
+    }
   }
 
-  async function prefillExisting() {
-    const cfg = await api('/api/setup/config');
-    document.getElementById('discordToken').value = cfg.discordToken || '';
-    document.getElementById('discordClientId').value = cfg.discordClientId || '';
-    document.getElementById('discordClientSecret').value = cfg.discordClientSecret || '';
-    document.getElementById('discordRedirectUri').value = cfg.discordRedirectUri || '';
-    document.getElementById('spotifyClientId').value = cfg.spotifyClientId || '';
-    document.getElementById('spotifyClientSecret').value = cfg.spotifyClientSecret || '';
-    document.getElementById('adminPasswordLegend').textContent = 'Change admin password (optional)';
-    document.getElementById('adminPasswordHint').textContent = 'Leave blank to keep the current password.';
+  async function openCreateForm(isFirst) {
+    clearForm();
+    formMode = isFirst ? 'create-first' : 'create';
+    editingId = null;
+    document.getElementById('botFormTitle').textContent = 'Add a bot';
+    adminPasswordFieldset.hidden = !isFirst;
+    cancelBotFormBtn.hidden = isFirst;
+    await prefillDefaults();
+    showOnly(botFormSection);
+  }
+
+  async function openEditForm(botId) {
+    clearForm();
+    const { bot } = await api(`/api/setup/bots/${botId}`);
+    formMode = 'edit';
+    editingId = botId;
+    document.getElementById('botFormTitle').textContent = `Edit "${bot.name}"`;
+    adminPasswordFieldset.hidden = true;
+    cancelBotFormBtn.hidden = false;
+    document.getElementById('botName').value = bot.name || '';
+    document.getElementById('discordToken').value = bot.discordToken || '';
+    document.getElementById('discordClientId').value = bot.discordClientId || '';
+    document.getElementById('discordClientSecret').value = bot.discordClientSecret || '';
+    document.getElementById('discordRedirectUri').value = bot.discordRedirectUri || '';
+    document.getElementById('spotifyClientId').value = bot.spotifyClientId || '';
+    document.getElementById('spotifyClientSecret').value = bot.spotifyClientSecret || '';
+    showOnly(botFormSection);
+  }
+
+  function botCardHtml(bot) {
+    const badges = [
+      bot.isPrimary ? '<span class="bot-badge bot-badge-primary">Login bot</span>' : '',
+      !bot.enabled ? '<span class="bot-badge bot-badge-disabled">Disabled</span>' : '',
+    ].join(' ');
+    return `
+      <li class="bot-card" data-id="${bot.id}">
+        <div class="bot-card-name">${bot.name} ${badges}</div>
+        <div class="bot-card-actions">
+          <button type="button" class="btn" data-action="invite">Invite link</button>
+          <button type="button" class="btn" data-action="toggle">${bot.enabled ? 'Disable' : 'Enable'}</button>
+          <button type="button" class="btn" data-action="edit">Edit</button>
+          <button type="button" class="btn btn-danger" data-action="remove">Remove</button>
+        </div>
+      </li>`;
+  }
+
+  async function renderBotList() {
+    const { bots } = await api('/api/setup/bots');
+    const list = document.getElementById('botList');
+    list.innerHTML = bots.length
+      ? bots.map(botCardHtml).join('')
+      : '<p class="muted">No bots yet.</p>';
+
+    list.querySelectorAll('.bot-card').forEach((card) => {
+      const botId = card.dataset.id;
+      card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditForm(botId));
+      card.querySelector('[data-action="remove"]').addEventListener('click', async () => {
+        if (!confirm('Remove this bot? It will disconnect immediately.')) return;
+        await api(`/api/setup/bots/${botId}`, { method: 'DELETE' });
+        await renderBotList();
+      });
+      card.querySelector('[data-action="toggle"]').addEventListener('click', async () => {
+        try {
+          await api(`/api/setup/bots/${botId}/toggle`, { method: 'POST' });
+        } catch (err) {
+          alert(err.message);
+        }
+        await renderBotList();
+      });
+      card.querySelector('[data-action="invite"]').addEventListener('click', async () => {
+        try {
+          const { url } = await api(`/api/setup/bots/${botId}/invite-link`);
+          window.open(url, '_blank', 'noopener');
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+    });
+
+    showOnly(botsSection);
   }
 
   async function render() {
     const status = await api('/api/setup/status');
-    if (status.configured && !status.isAdmin) {
-      passwordSection.hidden = false;
-      configSection.hidden = true;
+    if (!status.configured) {
+      await openCreateForm(true);
       return;
     }
-    passwordSection.hidden = true;
-    configSection.hidden = false;
-    if (status.isAdmin) {
-      await prefillExisting();
-    } else {
-      await prefillDefaults();
+    if (!status.isAdmin) {
+      showOnly(passwordSection);
+      return;
     }
+    await renderBotList();
   }
 
   await render();
@@ -56,7 +143,11 @@
     }
   });
 
-  function validateConfigBody(body) {
+  document.getElementById('addBotBtn').addEventListener('click', () => openCreateForm(false));
+  document.getElementById('backToBotsBtn').addEventListener('click', renderBotList);
+  cancelBotFormBtn.addEventListener('click', renderBotList);
+
+  function validateBotFields(body) {
     if (!/^\d{17,20}$/.test(body.discordClientId)) {
       return 'Discord Client ID must be the numeric ID from the Discord Developer Portal (17-20 digits) - not a name, username, or anything else.';
     }
@@ -80,22 +171,25 @@
     return null;
   }
 
-  document.getElementById('configForm').addEventListener('submit', async (e) => {
+  botForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('configError');
     errorEl.hidden = true;
 
     const body = {
+      name: document.getElementById('botName').value.trim(),
       discordToken: document.getElementById('discordToken').value.trim(),
       discordClientId: document.getElementById('discordClientId').value.trim(),
       discordClientSecret: document.getElementById('discordClientSecret').value.trim(),
       discordRedirectUri: document.getElementById('discordRedirectUri').value.trim(),
       spotifyClientId: document.getElementById('spotifyClientId').value.trim(),
       spotifyClientSecret: document.getElementById('spotifyClientSecret').value.trim(),
-      adminPassword: document.getElementById('newAdminPassword').value,
     };
+    if (formMode === 'create-first') {
+      body.adminPassword = document.getElementById('newAdminPassword').value;
+    }
 
-    const validationError = validateConfigBody(body);
+    const validationError = validateBotFields(body);
     if (validationError) {
       errorEl.textContent = validationError;
       errorEl.hidden = false;
@@ -103,11 +197,16 @@
     }
 
     try {
-      await api('/api/setup/save', { method: 'POST', body: JSON.stringify(body) });
-      configSection.hidden = true;
-      successSection.hidden = false;
+      if (formMode === 'edit') {
+        await api(`/api/setup/bots/${editingId}`, { method: 'PUT', body: JSON.stringify(body) });
+        await renderBotList();
+        return;
+      }
+
+      const { bot } = await api('/api/setup/bots', { method: 'POST', body: JSON.stringify(body) });
+      showOnly(successSection);
       try {
-        const { url } = await api('/api/setup/invite-link');
+        const { url } = await api(`/api/setup/bots/${bot.id}/invite-link`);
         document.getElementById('inviteLink').href = url;
       } catch {
         // Non-fatal - the bot is still configured, the invite link just isn't ready yet.

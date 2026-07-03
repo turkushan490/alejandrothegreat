@@ -75,6 +75,76 @@ button[type="submit"] {
   border: none;
   font-size: 15px;
 }
+
+.setup-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.setup-header-row .btn { padding: 8px 16px; }
+
+.setup-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.setup-form-actions button {
+  width: auto;
+  flex: 1;
+}
+
+.bot-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bot-card {
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bot-card-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bot-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.bot-badge-primary { background: rgba(88, 101, 242, .2); color: #a5adff; }
+.bot-badge-disabled { background: rgba(148, 155, 164, .2); color: var(--muted); }
+
+.bot-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bot-card-actions button, .bot-card-actions a {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn-danger { border-color: var(--danger); color: #ff8a8a; }
+.btn-danger:hover { background: rgba(218, 55, 60, .15); }
 .login-card h1 { margin-top: 0; }
 .subtitle { color: var(--muted); }
 

@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { botEvents } from '../bot/emitter.js';
-import { getClient } from '../bot/manager.js';
+import { findInstanceForGuild } from '../bot/manager.js';
 
 export function attachSocket(httpServer, sessionMiddleware) {
   const io = new Server(httpServer);
@@ -17,7 +17,7 @@ export function attachSocket(httpServer, sessionMiddleware) {
 
     socket.on('join', (guildId) => {
       const isMember = (session.guilds || []).some((g) => g.id === guildId);
-      if (isMember && getClient()?.guilds.cache.has(guildId)) {
+      if (isMember && findInstanceForGuild(guildId)) {
         socket.join(guildId);
       }
     });

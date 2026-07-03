@@ -2,7 +2,6 @@ import { PermissionFlagsBits } from 'discord.js';
 import { Router } from 'express';
 import {
   ActionError,
-  listQueue,
   pauseTrack,
   playTrack,
   removeTrackAt,
@@ -13,10 +12,10 @@ import {
   skipTrack,
   stopPlayback,
 } from '../../bot/actions.js';
-import { getClient, getPlayer } from '../../bot/manager.js';
+import { findInstanceForGuild, getAllInstances } from '../../bot/manager.js';
 import { canControl } from '../../bot/permissions.js';
 import { buildQueueSnapshot } from '../../bot/queueState.js';
-import { getGuildSettings, updateGuildSettings } from '../../db.js';
+import { getBot, getGuildSettings, updateGuildSettings } from '../../db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
 export const apiRouter = Router();
@@ -24,37 +23,41 @@ export const apiRouter = Router();
 apiRouter.use(requireAuth);
 
 apiRouter.get('/guilds', (req, res) => {
-  const client = getClient();
-  const player = getPlayer();
   const userGuilds = req.session.guilds || [];
-  const shared = userGuilds
-    .filter((g) => client?.guilds.cache.has(g.id))
-    .map((g) => {
+  const shared = [];
+
+  for (const { botId, client, player } of getAllInstances()) {
+    const bot = getBot(botId);
+    for (const g of userGuilds) {
+      if (!client.guilds.cache.has(g.id)) continue;
       const guild = client.guilds.cache.get(g.id);
-      const queue = player?.nodes.get(g.id);
-      return {
+      const queue = player.nodes.get(g.id);
+      shared.push({
         id: g.id,
         name: g.name,
         icon: g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : null,
         memberCount: guild.memberCount,
         playing: Boolean(queue?.currentTrack),
-      };
-    });
+        botName: bot?.name || 'Bot',
+      });
+    }
+  }
+
   res.json({ guilds: shared });
 });
 
 async function loadMember(req, res, next) {
-  const client = getClient();
   const { guildId } = req.params;
-  const guild = client?.guilds.cache.get(guildId);
+  const instance = findInstanceForGuild(guildId);
   const isMember = (req.session.guilds || []).some((g) => g.id === guildId);
-  if (!guild || !isMember) {
+  if (!instance || !isMember) {
     res.status(404).json({ error: 'Server not found' });
     return;
   }
   try {
-    req.discordGuild = guild;
-    req.discordMember = await guild.members.fetch(req.session.user.id);
+    req.botInstance = instance;
+    req.discordGuild = instance.client.guilds.cache.get(guildId);
+    req.discordMember = await req.discordGuild.members.fetch(req.session.user.id);
     next();
   } catch {
     res.status(404).json({ error: 'You are not a member of that server' });
@@ -86,12 +89,13 @@ function handleAction(fn) {
 }
 
 apiRouter.get('/guilds/:guildId', loadMember, (req, res) => {
-  const queue = getPlayer()?.nodes.get(req.params.guildId);
+  const queue = req.botInstance.player.nodes.get(req.params.guildId);
   res.json({
     ...buildQueueSnapshot(queue),
     canControl: canControl(req.discordMember),
     isManager: req.discordMember.permissions.has(PermissionFlagsBits.ManageGuild),
     settings: getGuildSettings(req.params.guildId),
+    botName: getBot(req.botInstance.botId)?.name || 'Bot',
   });
 });
 
@@ -104,14 +108,13 @@ apiRouter.get('/guilds/:guildId/roles', loadMember, (req, res) => {
 });
 
 apiRouter.get('/guilds/:guildId/search', loadMember, async (req, res) => {
-  const player = getPlayer();
   const query = String(req.query.q || '').trim();
-  if (!query || !player) {
+  if (!query) {
     res.json({ results: [] });
     return;
   }
   try {
-    const searchResult = await player.search(query, { requestedBy: req.discordMember.user });
+    const searchResult = await req.botInstance.player.search(query, { requestedBy: req.discordMember.user });
     res.json({
       results: searchResult.tracks.slice(0, 10).map((t) => ({
         title: t.title,

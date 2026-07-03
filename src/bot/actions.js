@@ -1,20 +1,22 @@
 import { QueueRepeatMode } from 'discord-player';
 import { getGuildSettings } from '../db.js';
-import { getPlayer } from './manager.js';
+import { findInstanceForGuild } from './manager.js';
 
 // Thrown for expected, user-facing failures ("nothing is playing", bad
 // input, etc). Slash commands, prefix commands, and the web API all catch
 // this the same way and show err.message directly instead of a generic error.
 export class ActionError extends Error {}
 
-function requirePlayer() {
-  const player = getPlayer();
-  if (!player) throw new ActionError('The bot is not connected right now.');
-  return player;
+// Multiple bot instances can be running at once - find whichever one is
+// actually a member of this guild rather than assuming a single global bot.
+function requirePlayer(guildId) {
+  const instance = findInstanceForGuild(guildId);
+  if (!instance) throw new ActionError('No connected bot manages this server right now.');
+  return instance.player;
 }
 
 function requireQueue(guildId) {
-  const queue = requirePlayer().nodes.get(guildId);
+  const queue = requirePlayer(guildId).nodes.get(guildId);
   if (!queue || !queue.currentTrack) throw new ActionError('Nothing is playing.');
   return queue;
 }
@@ -24,7 +26,7 @@ export async function playTrack({ guildId, voiceChannel, textChannel, query, req
   if (!query) throw new ActionError('Missing query.');
 
   const settings = getGuildSettings(guildId);
-  const player = requirePlayer();
+  const player = requirePlayer(guildId);
 
   const { track, searchResult } = await player.play(voiceChannel, query, {
     requestedBy,
@@ -57,7 +59,7 @@ export function skipTrack(guildId) {
 }
 
 export function stopPlayback(guildId) {
-  const queue = requirePlayer().nodes.get(guildId);
+  const queue = requirePlayer(guildId).nodes.get(guildId);
   if (!queue) throw new ActionError('Nothing is playing.');
   queue.delete();
 }
@@ -70,7 +72,7 @@ export function setVolume(guildId, level) {
 }
 
 export function shuffleQueue(guildId) {
-  const queue = requirePlayer().nodes.get(guildId);
+  const queue = requirePlayer(guildId).nodes.get(guildId);
   if (!queue || queue.tracks.size < 2) {
     throw new ActionError('Not enough tracks in the queue to shuffle.');
   }
@@ -78,7 +80,7 @@ export function shuffleQueue(guildId) {
 }
 
 export function removeTrackAt(guildId, index) {
-  const queue = requirePlayer().nodes.get(guildId);
+  const queue = requirePlayer(guildId).nodes.get(guildId);
   const track = queue?.tracks.at(index);
   if (!track) throw new ActionError('No track at that position.');
   queue.removeTrack(track);

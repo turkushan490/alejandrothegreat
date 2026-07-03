@@ -55,6 +55,7 @@
       const state = await api(`/api/guilds/${guildId}`);
       canControl = state.canControl;
       isManager = state.isManager;
+      document.getElementById('botNameLabel').textContent = `Managed by ${state.botName}`;
       renderState(state);
       await setupSettingsPanel(state.settings);
     } catch (err) {

@@ -11,11 +11,11 @@
 <div class="center-screen">
   <div class="card setup-card">
     <h1>Alejandrothegreat setup</h1>
-    <p class="subtitle">Configure the bot's Discord and Spotify credentials here. Everything is stored in the bot's own database, no config files to edit.</p>
+    <p class="subtitle">Run one or more Discord bots from this dashboard. Everything is stored in the bot's own database, no config files to edit.</p>
 
     <div id="passwordSection" hidden>
       <h2>Admin login</h2>
-      <p class="muted">This bot is already configured. Enter the admin password to change its settings.</p>
+      <p class="muted">This is already configured. Enter the admin password to manage bots.</p>
       <div id="passwordError" class="error-banner" hidden></div>
       <form id="passwordForm">
         <label for="adminPasswordInput">Admin password</label>
@@ -24,14 +24,27 @@
       </form>
     </div>
 
-    <div id="configSection" hidden>
+    <div id="botsSection" hidden>
+      <div class="setup-header-row">
+        <h2>Your bots</h2>
+        <button type="button" class="btn btn-discord" id="addBotBtn">+ Add a bot</button>
+      </div>
+      <ul class="bot-list" id="botList"></ul>
+    </div>
+
+    <div id="botFormSection" hidden>
+      <h2 id="botFormTitle">Add a bot</h2>
       <div id="configError" class="error-banner" hidden></div>
-      <form id="configForm">
+      <form id="botForm">
+        <label for="botName">Name (just for you, e.g. "Main server bot")</label>
+        <input type="text" id="botName" placeholder="My bot" maxlength="50">
+
         <fieldset>
           <legend>Discord application</legend>
           <p class="muted">
             Create one at <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications</a>.
             Under the Bot tab, enable <strong>Server Members Intent</strong> and <strong>Message Content Intent</strong> (needed for the dashboard and <code>!</code> commands).
+            Each bot needs its own separate Discord application/token.
           </p>
           <label for="discordToken">Bot token</label>
           <input type="password" id="discordToken" autocomplete="off" required>
@@ -41,7 +54,7 @@
           <input type="password" id="discordClientSecret" autocomplete="off" required>
           <label for="discordRedirectUri">OAuth redirect URI</label>
           <input type="text" id="discordRedirectUri" required>
-          <p class="muted">Add this exact URL under OAuth2 &rarr; Redirects in the Discord developer portal.</p>
+          <p class="muted" id="redirectUriHint">Add this exact URL under OAuth2 &rarr; Redirects in the Discord developer portal.</p>
         </fieldset>
 
         <fieldset>
@@ -56,21 +69,25 @@
           <input type="password" id="spotifyClientSecret" autocomplete="off">
         </fieldset>
 
-        <fieldset>
-          <legend id="adminPasswordLegend">Admin password</legend>
-          <p class="muted" id="adminPasswordHint">Protects this page. You'll need it to change these credentials later.</p>
+        <fieldset id="adminPasswordFieldset">
+          <legend>Admin password</legend>
+          <p class="muted">Protects this page. You'll need it to add more bots or change credentials later.</p>
           <input type="password" id="newAdminPassword" autocomplete="new-password">
         </fieldset>
 
-        <button type="submit" class="btn btn-discord">Save and start the bot</button>
+        <div class="setup-form-actions">
+          <button type="submit" class="btn btn-discord">Save</button>
+          <button type="button" class="btn" id="cancelBotFormBtn">Cancel</button>
+        </div>
       </form>
     </div>
 
     <div id="successSection" hidden>
-      <h2>You're set</h2>
-      <p class="muted">The bot is starting up. Invite it to your server, then log in to the dashboard to control it.</p>
+      <h2>Bot added</h2>
+      <p class="muted">It's starting up. Invite it to your server, then log in to the dashboard to control it.</p>
       <p><a class="btn btn-discord" id="inviteLink" href="#" target="_blank" rel="noopener">Add to your server</a></p>
       <p><a class="btn" href="/auth/login">Login with Discord to control it</a></p>
+      <p><button type="button" class="btn" id="backToBotsBtn">Back to bot list</button></p>
     </div>
   </div>
 </div>

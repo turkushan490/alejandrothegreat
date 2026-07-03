@@ -7,10 +7,15 @@ via Spotify's API for metadata and actually plays the audio from YouTube
 this is the only viable approach any Spotify-integrated Discord bot uses).
 
 Everything is configured through the web UI — no `.env` file to hand-edit.
-Log in to the dashboard with your Discord account to see every server you
-share with the bot and control playback (search, queue, skip, pause,
-volume, loop, shuffle) from a browser. Playback also works with `!`-style
-text commands in Discord, with the prefix configurable per server.
+Log in to the dashboard with your Discord account to see every server
+shared by any of your bots and control playback (search, queue, skip,
+pause, volume, loop, shuffle) from a browser. Playback also works with
+`!`-style text commands in Discord, with the prefix configurable per server.
+
+You can run more than one Discord bot from the same container — each with
+its own token, its own Discord application, and its own servers. Add,
+edit, enable/disable, or remove bots from `/setup.html` at any time; no
+restart required.
 
 ## 1. Run it
 
@@ -32,22 +37,28 @@ Either way, open `http://<host>:3005` (default port `3005`) once it's running.
 ## 2. Set it up
 
 On first launch the site sends you straight to the **setup wizard**
-(`/setup.html`). You'll need:
+(`/setup.html`) to add your first bot. You'll need:
 
-1. **A Discord application** — [discord.com/developers/applications](https://discord.com/developers/applications) → New Application.
+1. **A Discord application** — [discord.com/developers/applications](https://discord.com/developers/applications) → New Application. Each bot you add needs its own separate application/token - Discord bot tokens are always one-per-application.
    - Under **Bot**, reset the token and copy it.
    - Under **Bot**, enable **Server Members Intent** and **Message Content Intent** (the second one is required for `!`-prefix text commands).
    - Under **OAuth2 → General**, copy the Client ID and Client Secret.
    - Under **OAuth2 → General → Redirects**, add the exact redirect URI shown in the setup wizard (defaults to `http://<your-host>:3005/auth/discord/callback`).
-2. **A Spotify application (optional but recommended)** — [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → Create app. No redirect URI needed. Copy the Client ID and Client Secret. Without this, Spotify link/playlist resolution still works but with lower rate limits.
-3. **An admin password** you choose yourself — this protects the setup page so nobody else can change your bot's credentials later.
+2. **A Spotify application (optional but recommended)** — [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → Create app. No redirect URI needed. Copy the Client ID and Client Secret. Without this, Spotify link/playlist resolution still works but with lower rate limits. Each bot can use a different Spotify app, or you can reuse the same one.
+3. **An admin password** you choose yourself, only asked once for the first bot — this protects the setup page so nobody else can add, edit, or remove bots later.
 
 Submit the form and the bot logs in immediately — no restart needed. The
 wizard then shows an **"Add to your server"** button (a ready-made Discord
 invite link) and a **"Login with Discord"** button to open the dashboard.
 
-To change any of this later (rotate the bot token, add Spotify credentials,
-etc.), just go back to `/setup.html` and enter your admin password.
+The **first bot you add is also the one used for dashboard login** (Discord
+OAuth needs exactly one application to authenticate against) — but once
+logged in, the dashboard shows servers across every bot you've added, not
+just that one.
+
+To add another bot, edit an existing one's credentials, disable one
+temporarily, or remove one entirely, go back to `/setup.html`, enter your
+admin password, and manage the list from there.
 
 ## Slash commands
 
@@ -111,7 +122,7 @@ line up:
 
 - [`unraid/alejandrothegreat.xml`](unraid/alejandrothegreat.xml) — the app template, has both `Support` and `Project` links (CA removes templates missing both)
 - [`ca_profile.xml`](ca_profile.xml) — the required maintainer/developer profile at the repo root
-- [`unraid/icon.svg`](unraid/icon.svg) — listing icon
+- [`unraid/icon.png`](unraid/icon.png) — listing icon
 - The image is public on GHCR and confirmed to pull anonymously
 
 What's left needs to happen under **your** Unraid.net account, since the
@@ -129,6 +140,7 @@ necessarily on day one.
 
 ## Known limitations (v1)
 
+- **If you configured a bot before multi-bot support was added**, you'll need to re-enter its credentials once through `/setup.html` after updating — the database table storing bot credentials changed shape to support a list of bots instead of just one, and there's no automatic migration from the old single-bot format.
 - Sessions are stored in memory — restarting the container logs everyone out of the dashboard (the admin password and bot credentials themselves persist fine, since those live in the database).
 - YouTube playback relies on `discord-player-youtubei`/`yt-dlp`, both of which can break when YouTube changes things; if playback stops working, check for updates to those packages first.
 - Docker images are only tested for `linux/amd64` (standard Unraid hardware).

@@ -1,12 +1,12 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
-import { isBotConfigured } from '../../db.js';
+import { isAppConfigured } from '../../db.js';
 import { exchangeCode, fetchUser, fetchUserGuilds, getAuthorizeUrl } from '../oauth.js';
 
 export const authRouter = Router();
 
 authRouter.get('/login', (req, res) => {
-  if (!isBotConfigured()) {
+  if (!isAppConfigured()) {
     res.redirect('/setup.html');
     return;
   }

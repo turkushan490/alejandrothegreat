@@ -1,20 +1,11 @@
 (async () => {
   await loadUser();
 
-  try {
-    const { url } = await api('/api/setup/invite-link');
-    const inviteLink = document.getElementById('inviteLink');
-    inviteLink.href = url;
-    inviteLink.hidden = false;
-  } catch {
-    // Bot not configured yet - just leave the invite button hidden.
-  }
-
   const grid = document.getElementById('guildGrid');
   try {
     const { guilds } = await api('/api/guilds');
     if (guilds.length === 0) {
-      grid.innerHTML = '<p class="muted">The bot isn\'t in any servers you\'re a member of yet. Invite it first.</p>';
+      grid.innerHTML = '<p class="muted">None of your configured bots are in a server you\'re a member of yet. <a href="/setup.html">Invite one</a>.</p>';
       return;
     }
     grid.innerHTML = guilds
@@ -24,7 +15,7 @@
         <div class="guild-icon">${g.icon ? `<img src="${g.icon}" alt="">` : g.name[0]}</div>
         <div>
           <div>${g.name}${g.playing ? '<span class="playing-dot" title="Playing"></span>' : ''}</div>
-          <div class="muted">${g.memberCount} members</div>
+          <div class="muted">${g.memberCount} members &middot; ${g.botName}</div>
         </div>
       </a>`
       )

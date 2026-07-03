@@ -1,4 +1,4 @@
-import { tryAutoStart } from './bot/manager.js';
+import { startAllEnabledBots } from './bot/manager.js';
 import { config } from './config.js';
 import { createWebServer } from './web/app.js';
 
@@ -20,7 +20,7 @@ async function main() {
     console.log(`[web] Dashboard listening on port ${config.port}`);
   });
 
-  await tryAutoStart();
+  await startAllEnabledBots();
 }
 
 main().catch((err) => {
