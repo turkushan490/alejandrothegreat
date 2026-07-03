@@ -4,7 +4,7 @@ import 'dotenv/config';
 // Discord/Spotify credentials are configured at runtime via the setup
 // wizard and stored in the database instead - see src/db.js.
 export const config = {
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: parseInt(process.env.PORT || '3005', 10),
   dataDir: process.env.DATA_DIR || './data',
 };
 

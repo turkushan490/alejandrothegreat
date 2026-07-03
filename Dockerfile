@@ -21,7 +21,7 @@ COPY src ./src
 COPY public ./public
 
 ENV NODE_ENV=production
-EXPOSE 3000
+EXPOSE 3005
 VOLUME ["/app/data"]
 
 CMD ["node", "src/index.js"]

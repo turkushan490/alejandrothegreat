@@ -27,7 +27,7 @@ npm install
 npm start
 ```
 
-Either way, open `http://<host>:3000` (default port `3000`) once it's running.
+Either way, open `http://<host>:3005` (default port `3005`) once it's running.
 
 ## 2. Set it up
 
@@ -38,7 +38,7 @@ On first launch the site sends you straight to the **setup wizard**
    - Under **Bot**, reset the token and copy it.
    - Under **Bot**, enable **Server Members Intent** and **Message Content Intent** (the second one is required for `!`-prefix text commands).
    - Under **OAuth2 → General**, copy the Client ID and Client Secret.
-   - Under **OAuth2 → General → Redirects**, add the exact redirect URI shown in the setup wizard (defaults to `http://<your-host>:3000/auth/discord/callback`).
+   - Under **OAuth2 → General → Redirects**, add the exact redirect URI shown in the setup wizard (defaults to `http://<your-host>:3005/auth/discord/callback`).
 2. **A Spotify application (optional but recommended)** — [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → Create app. No redirect URI needed. Copy the Client ID and Client Secret. Without this, Spotify link/playlist resolution still works but with lower rate limits.
 3. **An admin password** you choose yourself — this protects the setup page so nobody else can change your bot's credentials later.
 
@@ -89,8 +89,8 @@ by `.github/workflows/docker-publish.yml` on every push to this repo:
 1. Unraid → **Docker** tab → **Add Container**.
 2. Switch the template dropdown to **"Enter a template URL"** (top right) and paste:
    `https://raw.githubusercontent.com/turkushan490/alejandrothegreat/master/unraid/alejandrothegreat.xml`
-3. It pre-fills the repository, port (`3000`), and appdata path (`/mnt/user/appdata/alejandrothegreat/data`). Apply.
-4. Once it's running, open `http://<unraid-ip>:3000/setup.html` and follow the setup wizard above.
+3. It pre-fills the repository, port (`3005`), and appdata path (`/mnt/user/appdata/alejandrothegreat`). Apply.
+4. Once it's running, open `http://<unraid-ip>:3005/setup.html` and follow the setup wizard above.
 
 The appdata folder holds the SQLite database with your bot token, Spotify
 credentials, admin password, and per-server settings — back it up, and
