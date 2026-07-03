@@ -105,14 +105,27 @@ useful while iterating before (or instead of) a public listing.
 
 ### Getting it listed for everyone in Community Applications
 
-That's a separate, manual submission through Unraid's own portal at
-[ca.unraid.net](https://ca.unraid.net) — it walks you through pointing it at
-this repo (it validates the template and shows a preview), and typically
-also expects a support thread for the app on the Unraid forums. That step
-is a judgment call for whenever the bot feels stable enough to hand to
-strangers — happy to prep whatever's needed for that submission when you're
-ready, but I'm not doing it unprompted since it publishes the app to
-Unraid's whole userbase.
+The repo side is fully prepped and confirmed against a real, currently
+listed CA template (ibracorp/unraid-templates) to make sure the fields
+line up:
+
+- [`unraid/alejandrothegreat.xml`](unraid/alejandrothegreat.xml) — the app template, has both `Support` and `Project` links (CA removes templates missing both)
+- [`ca_profile.xml`](ca_profile.xml) — the required maintainer/developer profile at the repo root
+- [`unraid/icon.svg`](unraid/icon.svg) — listing icon
+- The image is public on GHCR and confirmed to pull anonymously
+
+What's left needs to happen under **your** Unraid.net account, since the
+submission portal is account-authenticated and I don't have (and shouldn't
+have) your login:
+
+1. Go to [ca.unraid.net/submit](https://ca.unraid.net/submit) and log in with your Unraid.net account.
+2. Point it at this repository: `https://github.com/turkushan490/alejandrothegreat`
+3. It runs a live scan (parses the template, validates `ca_profile.xml`, checks for duplicate listings) and shows a preview — fix anything it flags.
+4. Submit. A support thread on the Unraid forums isn't strictly required (CA only requires a `Support` *or* `Project` link, and we have both), but it's worth creating one so people have somewhere to ask you questions — happy to draft that post text if/when you want it.
+
+This step publishes the app to Unraid's whole userbase and is worth doing
+once you've actually run it for a while with real credentials, not
+necessarily on day one.
 
 ## Known limitations (v1)
 
