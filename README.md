@@ -80,11 +80,39 @@ commands, text commands, and the web dashboard all respect.
 
 ## Unraid
 
-1. Copy this project onto your Unraid box, e.g. under `/mnt/user/appdata/alejandrothegreat`.
-2. Run `docker compose up -d --build` from that folder over SSH, or use the Unraid **Docker** tab to add a container mapping port `3000` and a volume for `/app/data` (this is where the SQLite database with all your settings/credentials lives — back it up).
-3. Open `http://<unraid-ip>:3000/setup.html` and follow the wizard above.
-4. Once the image is published to GitHub Container Registry (see `.github/workflows/docker-publish.yml`), you can instead pull `ghcr.io/<your-github-username>/alejandrothegreat:latest` directly instead of building locally.
-5. An Unraid Community Applications template will be added under `unraid/` once the image is published and tested.
+The image is built and published automatically to GitHub Container Registry
+by `.github/workflows/docker-publish.yml` on every push to this repo:
+`ghcr.io/turkushan490/alejandrothegreat:latest` (public, no login needed to pull).
+
+### Install it on your own Unraid box right now
+
+1. Unraid → **Docker** tab → **Add Container**.
+2. Switch the template dropdown to **"Enter a template URL"** (top right) and paste:
+   `https://raw.githubusercontent.com/turkushan490/alejandrothegreat/master/unraid/alejandrothegreat.xml`
+3. It pre-fills the repository, port (`3000`), and appdata path (`/mnt/user/appdata/alejandrothegreat/data`). Apply.
+4. Once it's running, open `http://<unraid-ip>:3000/setup.html` and follow the setup wizard above.
+
+The appdata folder holds the SQLite database with your bot token, Spotify
+credentials, admin password, and per-server settings — back it up, and
+don't share it, it's more sensitive than a typical config file.
+
+### Make it show up in your own Apps search (without a public listing)
+
+Unraid → **Apps** tab → **Settings** (gear icon) → **Template repositories**
+→ add `https://github.com/turkushan490/alejandrothegreat`. It'll then show
+up when searching Apps on that box, same as any other installed app —
+useful while iterating before (or instead of) a public listing.
+
+### Getting it listed for everyone in Community Applications
+
+That's a separate, manual submission through Unraid's own portal at
+[ca.unraid.net](https://ca.unraid.net) — it walks you through pointing it at
+this repo (it validates the template and shows a preview), and typically
+also expects a support thread for the app on the Unraid forums. That step
+is a judgment call for whenever the bot feels stable enough to hand to
+strangers — happy to prep whatever's needed for that submission when you're
+ready, but I'm not doing it unprompted since it publishes the app to
+Unraid's whole userbase.
 
 ## Known limitations (v1)
 
