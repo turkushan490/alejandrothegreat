@@ -1,11 +1,12 @@
-import { config } from '../config.js';
+import { getBotConfig } from '../db.js';
 
 const API = 'https://discord.com/api';
 
 export function getAuthorizeUrl(state) {
+  const cfg = getBotConfig();
   const params = new URLSearchParams({
-    client_id: config.discord.clientId,
-    redirect_uri: config.discord.redirectUri,
+    client_id: cfg.discordClientId,
+    redirect_uri: cfg.discordRedirectUri,
     response_type: 'code',
     scope: 'identify guilds',
     state,
@@ -14,12 +15,13 @@ export function getAuthorizeUrl(state) {
 }
 
 export async function exchangeCode(code) {
+  const cfg = getBotConfig();
   const params = new URLSearchParams({
-    client_id: config.discord.clientId,
-    client_secret: config.discord.clientSecret,
+    client_id: cfg.discordClientId,
+    client_secret: cfg.discordClientSecret,
     grant_type: 'authorization_code',
     code,
-    redirect_uri: config.discord.redirectUri,
+    redirect_uri: cfg.discordRedirectUri,
   });
 
   const res = await fetch(`${API}/oauth2/token`, {

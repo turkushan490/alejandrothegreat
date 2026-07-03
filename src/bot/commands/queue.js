@@ -1,14 +1,10 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { player } from '../client.js';
+import { listQueue } from '../actions.js';
 
 export const data = new SlashCommandBuilder().setName('queue').setDescription('Show the current queue');
 
 export async function execute(interaction) {
-  const queue = player.nodes.get(interaction.guild.id);
-  if (!queue || !queue.currentTrack) {
-    await interaction.reply({ content: 'Nothing is playing.', ephemeral: true });
-    return;
-  }
+  const queue = listQueue(interaction.guild.id);
 
   const upcoming =
     queue.tracks

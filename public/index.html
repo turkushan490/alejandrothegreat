@@ -12,7 +12,21 @@
     <h1>Alejandrothegreat</h1>
     <p class="subtitle">Control your server's music from anywhere.</p>
     <a class="btn btn-discord" href="/auth/login">Login with Discord</a>
+    <p class="muted" style="margin-top: 16px;"><a href="/setup.html">Bot admin? Configure it here</a></p>
   </div>
 </div>
+<script src="/js/app.js"></script>
+<script>
+(async () => {
+  try {
+    const status = await api('/api/setup/status');
+    if (!status.configured) {
+      window.location.href = '/setup.html';
+    }
+  } catch {
+    // If the status check fails, just leave the normal login page up.
+  }
+})();
+</script>
 </body>
 </html>

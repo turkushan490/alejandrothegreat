@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup - Alejandrothegreat</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="center-screen">
+  <div class="card setup-card">
+    <h1>Alejandrothegreat setup</h1>
+    <p class="subtitle">Configure the bot's Discord and Spotify credentials here. Everything is stored in the bot's own database, no config files to edit.</p>
+
+    <div id="passwordSection" hidden>
+      <h2>Admin login</h2>
+      <p class="muted">This bot is already configured. Enter the admin password to change its settings.</p>
+      <div id="passwordError" class="error-banner" hidden></div>
+      <form id="passwordForm">
+        <label for="adminPasswordInput">Admin password</label>
+        <input type="password" id="adminPasswordInput" required>
+        <button type="submit" class="btn btn-discord">Unlock settings</button>
+      </form>
+    </div>
+
+    <div id="configSection" hidden>
+      <div id="configError" class="error-banner" hidden></div>
+      <form id="configForm">
+        <fieldset>
+          <legend>Discord application</legend>
+          <p class="muted">
+            Create one at <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications</a>.
+            Under the Bot tab, enable <strong>Server Members Intent</strong> and <strong>Message Content Intent</strong> (needed for the dashboard and <code>!</code> commands).
+          </p>
+          <label for="discordToken">Bot token</label>
+          <input type="password" id="discordToken" autocomplete="off" required>
+          <label for="discordClientId">Client ID</label>
+          <input type="text" id="discordClientId" required>
+          <label for="discordClientSecret">Client secret</label>
+          <input type="password" id="discordClientSecret" autocomplete="off" required>
+          <label for="discordRedirectUri">OAuth redirect URI</label>
+          <input type="text" id="discordRedirectUri" required>
+          <p class="muted">Add this exact URL under OAuth2 &rarr; Redirects in the Discord developer portal.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Spotify application (optional)</legend>
+          <p class="muted">
+            Create one at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>.
+            Spotify link/playlist search still works without this, just with lower rate limits.
+          </p>
+          <label for="spotifyClientId">Client ID</label>
+          <input type="text" id="spotifyClientId">
+          <label for="spotifyClientSecret">Client secret</label>
+          <input type="password" id="spotifyClientSecret" autocomplete="off">
+        </fieldset>
+
+        <fieldset>
+          <legend id="adminPasswordLegend">Admin password</legend>
+          <p class="muted" id="adminPasswordHint">Protects this page. You'll need it to change these credentials later.</p>
+          <input type="password" id="newAdminPassword" autocomplete="new-password">
+        </fieldset>
+
+        <button type="submit" class="btn btn-discord">Save and start the bot</button>
+      </form>
+    </div>
+
+    <div id="successSection" hidden>
+      <h2>You're set</h2>
+      <p class="muted">The bot is starting up. Invite it to your server, then log in to the dashboard to control it.</p>
+      <p><a class="btn btn-discord" id="inviteLink" href="#" target="_blank" rel="noopener">Add to your server</a></p>
+      <p><a class="btn" href="/auth/login">Login with Discord to control it</a></p>
+    </div>
+  </div>
+</div>
+<script src="/js/app.js"></script>
+<script src="/js/setup.js"></script>
+</body>
+</html>

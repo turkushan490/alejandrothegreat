@@ -1,3 +1,4 @@
+import { ActionError } from '../actions.js';
 import { canControl } from '../permissions.js';
 
 // Commands that change playback and are subject to the guild's control-mode setting.
@@ -29,8 +30,11 @@ export default async function interactionCreate(interaction) {
   try {
     await command.execute(interaction);
   } catch (err) {
-    console.error(`[bot] error running /${interaction.commandName}:`, err);
-    const payload = { content: 'Something went wrong running that command.', ephemeral: true };
+    const message = err instanceof ActionError ? err.message : 'Something went wrong running that command.';
+    if (!(err instanceof ActionError)) {
+      console.error(`[bot] error running /${interaction.commandName}:`, err);
+    }
+    const payload = { content: message, ephemeral: true };
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp(payload);
     } else {

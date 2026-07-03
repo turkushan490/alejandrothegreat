@@ -1,12 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { QueueRepeatMode } from 'discord-player';
-import { player } from '../client.js';
-
-const MODE_MAP = {
-  off: QueueRepeatMode.OFF,
-  track: QueueRepeatMode.TRACK,
-  queue: QueueRepeatMode.QUEUE,
-};
+import { setLoopMode } from '../actions.js';
 
 export const data = new SlashCommandBuilder()
   .setName('loop')
@@ -24,12 +17,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  const queue = player.nodes.get(interaction.guild.id);
-  if (!queue) {
-    await interaction.reply({ content: 'Nothing is playing.', ephemeral: true });
-    return;
-  }
   const mode = interaction.options.getString('mode', true);
-  queue.setRepeatMode(MODE_MAP[mode]);
+  setLoopMode(interaction.guild.id, mode);
   await interaction.reply(`Loop mode set to **${mode}**.`);
 }

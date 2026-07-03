@@ -3,9 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import session from 'express-session';
-import { config } from '../config.js';
+import { sessionSecret } from '../db.js';
 import { apiRouter } from './routes/api.js';
 import { authRouter } from './routes/auth.js';
+import { setupRouter } from './routes/setup.js';
 import { attachSocket } from './socket.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,7 +16,7 @@ export function createWebServer() {
   const app = express();
 
   const sessionMiddleware = session({
-    secret: config.sessionSecret,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
@@ -26,6 +27,7 @@ export function createWebServer() {
   app.use(express.static(publicDir));
 
   app.use('/auth', authRouter);
+  app.use('/api/setup', setupRouter);
   app.use('/api', apiRouter);
 
   const httpServer = http.createServer(app);

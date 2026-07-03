@@ -45,6 +45,29 @@
     <h3>Queue</h3>
     <ol id="queueList" class="queue-list"></ol>
   </section>
+
+  <section class="settings card" id="settingsPanel" hidden>
+    <h3>Server settings</h3>
+    <div id="settingsError" class="error-banner" hidden></div>
+    <form id="settingsForm">
+      <label for="prefixInput">Text-command prefix (e.g. <code>!play</code>)</label>
+      <input type="text" id="prefixInput" maxlength="5" style="max-width: 120px;">
+
+      <label for="controlModeSelect">Who can control playback</label>
+      <select id="controlModeSelect">
+        <option value="everyone">Everyone</option>
+        <option value="managers">Server managers only</option>
+        <option value="dj-role">Specific role</option>
+      </select>
+
+      <div id="djRoleRow" hidden>
+        <label for="djRoleSelect">DJ role</label>
+        <select id="djRoleSelect"></select>
+      </div>
+
+      <button type="submit" class="btn btn-discord" style="width: auto; margin-top: 14px;">Save settings</button>
+    </form>
+  </section>
 </main>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/app.js"></script>

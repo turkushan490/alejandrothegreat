@@ -1,6 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../client.js';
-import { getGuildSettings } from '../../db.js';
+import { ActionError, playTrack } from '../actions.js';
 
 export const data = new SlashCommandBuilder()
   .setName('play')
@@ -10,38 +9,32 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  const channel = interaction.member?.voice?.channel;
-  if (!channel) {
+  const voiceChannel = interaction.member?.voice?.channel;
+  if (!voiceChannel) {
     await interaction.reply({ content: 'Join a voice channel first.', ephemeral: true });
     return;
   }
 
   await interaction.deferReply();
-
   const query = interaction.options.getString('query', true);
-  const settings = getGuildSettings(interaction.guild.id);
 
   try {
-    const { track, searchResult } = await player.play(channel, query, {
-      nodeOptions: {
-        metadata: { channel: interaction.channel },
-        volume: settings.defaultVolume,
-        leaveOnEmpty: true,
-        leaveOnEmptyCooldown: 300_000,
-        leaveOnEnd: true,
-        leaveOnEndCooldown: 300_000,
-      },
+    const { track, playlist } = await playTrack({
+      guildId: interaction.guild.id,
+      voiceChannel,
+      textChannel: interaction.channel,
+      query,
+      requestedBy: interaction.user,
     });
-
-    if (searchResult?.playlist) {
-      await interaction.editReply(
-        `Queued playlist **${searchResult.playlist.title}** (${searchResult.tracks.length} tracks).`
-      );
-    } else {
-      await interaction.editReply(`Queued **${track.title}** by ${track.author}.`);
-    }
+    await interaction.editReply(
+      playlist
+        ? `Queued playlist **${playlist.title}** (${playlist.tracks.length} tracks).`
+        : `Queued **${track.title}** by ${track.author}.`
+    );
   } catch (err) {
     console.error('[bot] play command failed:', err);
-    await interaction.editReply("Couldn't find or play that. Try a different link or search term.");
+    await interaction.editReply(
+      err instanceof ActionError ? err.message : "Couldn't find or play that. Try a different link or search term."
+    );
   }
 }

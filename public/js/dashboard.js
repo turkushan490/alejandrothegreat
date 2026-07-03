@@ -1,6 +1,15 @@
 (async () => {
   await loadUser();
 
+  try {
+    const { url } = await api('/api/setup/invite-link');
+    const inviteLink = document.getElementById('inviteLink');
+    inviteLink.href = url;
+    inviteLink.hidden = false;
+  } catch {
+    // Bot not configured yet - just leave the invite button hidden.
+  }
+
   const grid = document.getElementById('guildGrid');
   try {
     const { guilds } = await api('/api/guilds');

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { player } from '../client.js';
+import { setVolume } from '../actions.js';
 
 export const data = new SlashCommandBuilder()
   .setName('volume')
@@ -9,12 +9,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  const queue = player.nodes.get(interaction.guild.id);
-  if (!queue) {
-    await interaction.reply({ content: 'Nothing is playing.', ephemeral: true });
-    return;
-  }
   const level = interaction.options.getInteger('level', true);
-  queue.node.setVolume(level);
+  setVolume(interaction.guild.id, level);
   await interaction.reply(`Volume set to ${level}%.`);
 }

@@ -1,10 +1,15 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
+import { isBotConfigured } from '../../db.js';
 import { exchangeCode, fetchUser, fetchUserGuilds, getAuthorizeUrl } from '../oauth.js';
 
 export const authRouter = Router();
 
 authRouter.get('/login', (req, res) => {
+  if (!isBotConfigured()) {
+    res.redirect('/setup.html');
+    return;
+  }
   const state = crypto.randomBytes(16).toString('hex');
   req.session.oauthState = state;
   res.redirect(getAuthorizeUrl(state));

@@ -1,17 +1,14 @@
-import { client, createBot } from './bot/client.js';
-import { deployCommands } from './bot/deployCommands.js';
+import { tryAutoStart } from './bot/manager.js';
 import { config } from './config.js';
 import { createWebServer } from './web/app.js';
 
 async function main() {
-  await createBot();
-  await client.login(config.discord.token);
-  await deployCommands();
-
   const server = createWebServer();
   server.listen(config.port, () => {
     console.log(`[web] Dashboard listening on port ${config.port}`);
   });
+
+  await tryAutoStart();
 }
 
 main().catch((err) => {

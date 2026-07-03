@@ -9,6 +9,7 @@
   await loadUser();
 
   let canControl = false;
+  let isManager = false;
 
   function renderState(state) {
     const npEl = document.getElementById('nowPlaying');
@@ -30,11 +31,32 @@
       : '<li class="muted">Queue is empty.</li>';
   }
 
+  async function setupSettingsPanel(settings) {
+    const panel = document.getElementById('settingsPanel');
+    panel.hidden = !isManager;
+    if (!isManager) return;
+
+    document.getElementById('prefixInput').value = settings.prefix;
+    document.getElementById('controlModeSelect').value = settings.controlMode;
+    document.getElementById('djRoleRow').hidden = settings.controlMode !== 'dj-role';
+
+    const roleSelect = document.getElementById('djRoleSelect');
+    try {
+      const { roles } = await api(`/api/guilds/${guildId}/roles`);
+      roleSelect.innerHTML = roles.map((r) => `<option value="${r.id}">${r.name}</option>`).join('');
+      if (settings.djRoleId) roleSelect.value = settings.djRoleId;
+    } catch {
+      roleSelect.innerHTML = '<option value="">(couldn\'t load roles)</option>';
+    }
+  }
+
   async function refresh() {
     try {
       const state = await api(`/api/guilds/${guildId}`);
       canControl = state.canControl;
+      isManager = state.isManager;
       renderState(state);
+      await setupSettingsPanel(state.settings);
     } catch (err) {
       document.getElementById('nowPlaying').innerHTML = `<div class="error-banner">${err.message}</div>`;
     }
@@ -76,5 +98,26 @@
     if (!query) return;
     await act('play', { query });
     input.value = '';
+  });
+
+  document.getElementById('controlModeSelect').addEventListener('change', (e) => {
+    document.getElementById('djRoleRow').hidden = e.target.value !== 'dj-role';
+  });
+
+  document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('settingsError');
+    errorEl.hidden = true;
+    const body = {
+      prefix: document.getElementById('prefixInput').value.trim() || '!',
+      controlMode: document.getElementById('controlModeSelect').value,
+      djRoleId: document.getElementById('djRoleSelect').value || null,
+    };
+    try {
+      await api(`/api/guilds/${guildId}/settings`, { method: 'POST', body: JSON.stringify(body) });
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    }
   });
 })();
