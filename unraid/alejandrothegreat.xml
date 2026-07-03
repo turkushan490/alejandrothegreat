@@ -4,23 +4,26 @@
   <Repository>ghcr.io/turkushan490/alejandrothegreat:latest</Repository>
   <Registry>https://github.com/turkushan490/alejandrothegreat/pkgs/container/alejandrothegreat</Registry>
   <Network>bridge</Network>
-  <MyIP/>
-  <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support>https://github.com/turkushan490/alejandrothegreat/issues</Support>
   <Project>https://github.com/turkushan490/alejandrothegreat</Project>
+  <ReadMe>https://github.com/turkushan490/alejandrothegreat#readme</ReadMe>
   <Overview>Discord music bot with a web dashboard, called Alejandrothegreat. Paste a Spotify link/playlist or just search terms and it plays the matching audio from YouTube (Spotify doesn't allow third-party bots to stream its own audio). Control it with Discord slash commands, `!`-prefix text commands, or by logging into the web dashboard with your Discord account.&#13;&#10;&#13;&#10;Everything - the Discord bot token, Spotify credentials, and an admin password - is configured through a setup wizard at http://[IP]:[PORT:3000]/setup.html after you start the container. No environment variables required.&#13;&#10;&#13;&#10;You'll need a free Discord application (discord.com/developers/applications) and, optionally, a free Spotify application (developer.spotify.com/dashboard) before running the wizard - see the project README for the exact steps.</Overview>
   <Category>MediaApp:Music</Category>
   <WebUI>http://[IP]:[PORT:3000]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/turkushan490/alejandrothegreat/master/unraid/alejandrothegreat.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/turkushan490/alejandrothegreat/master/unraid/icon.svg</Icon>
+  <Icon>https://raw.githubusercontent.com/turkushan490/alejandrothegreat/master/unraid/icon.png</Icon>
   <ExtraParams/>
   <PostArgs/>
-  <DonateText/>
-  <DonateLink/>
-  <DonateImg/>
   <MinVer/>
-  <Description>Discord music bot with a web dashboard. Search Spotify links/playlists (audio streams from YouTube), control playback via slash commands, `!` text commands, or the browser dashboard. Configure the Discord bot token and Spotify credentials through the built-in setup wizard - no environment variables required.</Description>
+  <Beta>true</Beta>
+  <Maintainer>turkushan490</Maintainer>
+  <ExtraSearchTerms>spotify youtube music player queue playlist discord bot dashboard</ExtraSearchTerms>
+  <Requires>Requires a free Discord application (discord.com/developers/applications) with a bot token, Client ID, and Client Secret. A free Spotify application (developer.spotify.com/dashboard) is optional but improves Spotify link/playlist search. Both are entered through the in-app setup wizard after install - see the README for exact steps.</Requires>
+  <Changes>
+### 2026-07
+Initial Community Applications template.
+  </Changes>
   <Networking>
     <Mode>bridge</Mode>
     <Publish>
