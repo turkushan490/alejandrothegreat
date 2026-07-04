@@ -11,6 +11,11 @@ const START_LINES = [
   '✨ Fresh off the queue',
   '🔊 Turn it up',
   '💫 Vibe check — playing now',
+  '🕺 Dropping the needle on',
+  '🎧 Currently serving',
+  '🔥 This one goes hard —',
+  '⭐ Playing your fave',
+  '💅 Presenting, live',
 ];
 
 function pick(arr) {

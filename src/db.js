@@ -36,6 +36,12 @@ db.exec(`
     session_secret TEXT NOT NULL,
     admin_password_hash TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS admins (
+    discord_user_id TEXT PRIMARY KEY,
+    name TEXT,
+    added_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
 `);
 
 // --- app-level config: session secret (auto-generated) + admin password ---
@@ -182,6 +188,35 @@ export function getPrimaryBot() {
 
 export function isAppConfigured() {
   return Boolean(getAdminPasswordHash()) && listBots().length > 0;
+}
+
+// --- Discord-account admins (delegated bot management) ---
+// The owner (password-authenticated) can grant admin rights to specific
+// Discord accounts. When those users sign in with Discord, they can add
+// and manage bots just like the owner.
+
+const listAdminsStmt = db.prepare('SELECT * FROM admins ORDER BY added_at ASC');
+const addAdminStmt = db.prepare(
+  'INSERT INTO admins (discord_user_id, name) VALUES (?, ?) ON CONFLICT(discord_user_id) DO UPDATE SET name = excluded.name'
+);
+const removeAdminStmt = db.prepare('DELETE FROM admins WHERE discord_user_id = ?');
+const isAdminStmt = db.prepare('SELECT 1 FROM admins WHERE discord_user_id = ?');
+
+export function listAdmins() {
+  return listAdminsStmt.all().map((r) => ({ id: r.discord_user_id, name: r.name, addedAt: r.added_at }));
+}
+
+export function addAdmin(discordUserId, name) {
+  addAdminStmt.run(discordUserId, name || null);
+  return { id: discordUserId, name: name || null };
+}
+
+export function removeAdmin(discordUserId) {
+  removeAdminStmt.run(discordUserId);
+}
+
+export function isDiscordAdmin(discordUserId) {
+  return Boolean(isAdminStmt.get(discordUserId));
 }
 
 // --- one-time migration from the pre-multi-bot schema ---

@@ -3,31 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alejandrothegreat</title>
+<title>Alejandrothegreat — Discord music bot</title>
 <link rel="icon" href="/favicon.png">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<div class="center-screen">
-  <div class="card login-card">
-    <h1>Alejandrothegreat</h1>
-    <p class="subtitle">Control your server's music from anywhere.</p>
-    <a class="btn btn-discord" href="/auth/login">Login with Discord</a>
-    <p class="muted" style="margin-top: 16px;"><a href="/setup.html">Bot admin? Configure it here</a></p>
+<header class="topbar">
+  <a class="brand" href="/"><img src="/favicon.png" alt="" width="26" height="26" style="border-radius:6px;vertical-align:middle"> Alejandrothegreat</a>
+  <div class="user-area" id="userArea">
+    <a class="btn btn-discord" href="/auth/login">Sign in with Discord</a>
   </div>
-</div>
+</header>
+
+<main class="container">
+  <section class="hero card">
+    <img src="/favicon.png" alt="" class="hero-icon">
+    <div>
+      <h1 class="hero-title">Alejandrothegreat</h1>
+      <p class="hero-tagline">A cheeky Discord music bot with a web dashboard. 🎶</p>
+      <p class="muted">Paste a Spotify link, a YouTube link, or just a song name — he'll find it and play it. Control everything from Discord or right here in your browser.</p>
+      <div class="hero-actions">
+        <a class="btn btn-discord" href="/auth/login">Sign in with Discord to control it</a>
+        <a class="btn" id="dashLink" href="/dashboard.html" hidden>Open dashboard →</a>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="section-h">How it works</h2>
+  <div class="guide-grid">
+    <div class="card guide-step">
+      <div class="guide-num">1</div>
+      <div class="track-title">Sign in with Discord</div>
+      <p class="muted">Use the button up top. You'll see every server you share with the bot.</p>
+    </div>
+    <div class="card guide-step">
+      <div class="guide-num">2</div>
+      <div class="track-title">Pick a server</div>
+      <p class="muted">Open any server where the bot lives and you have the DJ role.</p>
+    </div>
+    <div class="card guide-step">
+      <div class="guide-num">3</div>
+      <div class="track-title">Play & control</div>
+      <p class="muted">Search, queue, skip, pause, shuffle, set volume — live now-playing with artwork.</p>
+    </div>
+  </div>
+
+  <h2 class="section-h">Ways to control the music</h2>
+  <div class="guide-grid">
+    <div class="card">
+      <div class="track-title">🖥️ Web dashboard</div>
+      <p class="muted">Right here — the full control panel with a live progress bar.</p>
+    </div>
+    <div class="card">
+      <div class="track-title">⚡ Slash commands</div>
+      <p class="muted"><code>/play</code>, <code>/skip</code>, <code>/queue</code>, <code>/volume</code> and more, in Discord.</p>
+    </div>
+    <div class="card">
+      <div class="track-title">💬 Text commands</div>
+      <p class="muted"><code>!play never gonna give you up</code> — prefix is changeable per server.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">🛠️ Self-hosted &amp; open source</div>
+    <div class="callout-body">
+      Made by <strong>turkushan490</strong>. Run your own copy on Docker / Unraid — grab it on
+      <a href="https://github.com/turkushan490/alejandrothegreat" target="_blank" rel="noopener">GitHub</a>.
+    </div>
+  </div>
+
+  <div class="card" id="adminHint" hidden>
+    <div class="track-title">🔑 Admin note</div>
+    <p class="muted">Login not working with <code>Invalid OAuth2 redirect_uri</code>? Add this exact URL under <strong>OAuth2 → Redirects</strong> in the Discord Developer Portal for your login bot:</p>
+    <code id="redirectUri" style="display:block;padding:12px;margin:8px 0;word-break:break-all;"></code>
+    <button class="btn" id="copyRedirect" style="width:auto">Copy</button>
+    <p class="muted" style="margin-top:12px"><a href="/setup.html">Manage bots &amp; admins →</a></p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  Alejandrothegreat · made by turkushan490 · <a href="https://github.com/turkushan490/alejandrothegreat" target="_blank" rel="noopener">GitHub</a>
+</footer>
+
 <script src="/js/app.js"></script>
-<script>
-(async () => {
-  try {
-    const status = await api('/api/setup/status');
-    if (!status.configured) {
-      window.location.href = '/setup.html';
-    }
-  } catch {
-    // If the status check fails, just leave the normal login page up.
-  }
-})();
-</script>
+<script src="/js/home.js"></script>
 </body>
 </html>

@@ -30,6 +30,25 @@
         <button type="button" class="btn btn-discord" id="addBotBtn">+ Add a bot</button>
       </div>
       <ul class="bot-list" id="botList"></ul>
+
+      <h2 style="margin-top:24px">Admins</h2>
+      <p class="muted">Grant bot-management rights to Discord accounts. When these people sign in with Discord, they can add and manage bots too — no password needed.</p>
+      <div id="adminError" class="error-banner" hidden></div>
+      <ul class="admin-list" id="adminList"></ul>
+      <form id="addAdminForm" style="margin-top:12px">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end">
+          <div style="flex:1; min-width:200px">
+            <label for="adminUserId">Discord user ID</label>
+            <input type="text" id="adminUserId" inputmode="numeric" placeholder="e.g. 289376565519222784">
+          </div>
+          <div style="flex:1; min-width:140px">
+            <label for="adminName">Label (optional)</label>
+            <input type="text" id="adminName" placeholder="e.g. Alex">
+          </div>
+          <button type="submit" class="btn btn-discord" style="width:auto">Add admin</button>
+        </div>
+        <p class="muted" style="margin-top:6px">In Discord: Settings → Advanced → Developer Mode ON, then right-click a user → <strong>Copy User ID</strong>.</p>
+      </form>
     </div>
 
     <div id="botFormSection" hidden>

@@ -3,22 +3,35 @@ import { Router } from 'express';
 import { restartBotInstance, startBotInstance, stopBotInstance } from '../../bot/manager.js';
 import { envDefaults } from '../../config.js';
 import {
+  addAdmin,
   createBot,
   deleteBot,
   getAdminPasswordHash,
   getBot,
   isAppConfigured,
+  isDiscordAdmin,
+  listAdmins,
   listBots,
+  removeAdmin,
   setAdminPasswordHash,
   updateBot,
 } from '../../db.js';
 import { hashPassword, verifyPassword } from '../adminAuth.js';
+import { redirectUriFromRequest } from '../oauth.js';
 
 export const setupRouter = Router();
 
+// Admin = the password-authenticated owner OR a signed-in Discord user the
+// owner has granted admin rights to.
+function isAdminUser(req) {
+  if (req.session.isAdmin) return true;
+  if (req.session.user && isDiscordAdmin(req.session.user.id)) return true;
+  return false;
+}
+
 function requireAdmin(req, res, next) {
-  if (!req.session.isAdmin) {
-    res.status(403).json({ error: 'Admin login required.' });
+  if (!isAdminUser(req)) {
+    res.status(403).json({ error: 'Admin access required.' });
     return;
   }
   next();
@@ -66,7 +79,9 @@ function botSummary(bot, isPrimary) {
 setupRouter.get('/status', (req, res) => {
   res.json({
     configured: isAppConfigured(),
-    isAdmin: Boolean(req.session.isAdmin),
+    isAdmin: isAdminUser(req),
+    signedIn: Boolean(req.session.user),
+    redirectUri: redirectUriFromRequest(req),
   });
 });
 
@@ -127,8 +142,8 @@ setupRouter.post('/bots', async (req, res) => {
   const existingBots = listBots();
   const firstEver = existingBots.length === 0 && !getAdminPasswordHash();
 
-  if (!firstEver && !req.session.isAdmin) {
-    res.status(403).json({ error: 'Admin login required.' });
+  if (!firstEver && !isAdminUser(req)) {
+    res.status(403).json({ error: 'Admin access required.' });
     return;
   }
 
@@ -279,4 +294,26 @@ setupRouter.get('/bots/:id/invite-link', requireAdmin, (req, res) => {
 
   const url = `https://discord.com/oauth2/authorize?client_id=${bot.discordClientId}&scope=${encodeURIComponent('bot applications.commands')}&permissions=${permissions}`;
   res.json({ url });
+});
+
+// --- admins (Discord accounts the owner grants bot-management rights to) ---
+
+setupRouter.get('/admins', requireAdmin, (req, res) => {
+  res.json({ admins: listAdmins() });
+});
+
+setupRouter.post('/admins', requireAdmin, (req, res) => {
+  const discordUserId = String(req.body.discordUserId || '').trim();
+  const name = String(req.body.name || '').trim();
+  if (!/^\d{17,20}$/.test(discordUserId)) {
+    res.status(400).json({ error: 'Enter a valid Discord user ID (the long number, 17-20 digits). Turn on Developer Mode in Discord, right-click a user, Copy User ID.' });
+    return;
+  }
+  const admin = addAdmin(discordUserId, name);
+  res.json({ ok: true, admin });
+});
+
+setupRouter.delete('/admins/:id', requireAdmin, (req, res) => {
+  removeAdmin(req.params.id);
+  res.json({ ok: true });
 });

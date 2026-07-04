@@ -110,7 +110,53 @@
     });
 
     showOnly(botsSection);
+    await renderAdmins();
   }
+
+  const escA = (s) =>
+    String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  async function renderAdmins() {
+    const list = document.getElementById('adminList');
+    try {
+      const { admins } = await api('/api/setup/admins');
+      list.innerHTML = admins.length
+        ? admins
+            .map(
+              (a) => `<li>
+                <span><span class="track-title">${escA(a.name || 'Admin')}</span> <code>${escA(a.id)}</code></span>
+                <button type="button" class="btn btn-danger" data-admin="${escA(a.id)}">Remove</button>
+              </li>`
+            )
+            .join('')
+        : '<li class="muted">No extra admins yet — just you.</li>';
+      list.querySelectorAll('[data-admin]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          await api(`/api/setup/admins/${btn.dataset.admin}`, { method: 'DELETE' });
+          await renderAdmins();
+        });
+      });
+    } catch {
+      list.innerHTML = '<li class="muted">Couldn\'t load admins.</li>';
+    }
+  }
+
+  document.getElementById('addAdminForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('adminError');
+    errorEl.hidden = true;
+    const discordUserId = document.getElementById('adminUserId').value.trim();
+    const name = document.getElementById('adminName').value.trim();
+    try {
+      await api('/api/setup/admins', { method: 'POST', body: JSON.stringify({ discordUserId, name }) });
+      document.getElementById('adminUserId').value = '';
+      document.getElementById('adminName').value = '';
+      await renderAdmins();
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    }
+  });
 
   async function render() {
     const status = await api('/api/setup/status');
