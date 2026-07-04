@@ -1,69 +1,83 @@
-// Alejandro's voice: flamboyant, campy, warm, drenched in emotes. All the
-// user-facing reply text lives here so slash commands and prefix commands
-// stay in the same fabulous character.
+// Alejandro's voice: cheeky, bouncy, quick-witted, a little bit gay but not
+// drowning in "darling". Teasing and playful over full drag-queen camp. All
+// user-facing text lives here so slash + prefix commands stay in character.
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 export const flair = {
   queued: (title, author) =>
-    `${pick(['💅', '✨', '🎀', '🌈', '💖'])} Ooh yes — **${title}** by *${author}* is in the lineup, honey! 🎶`,
+    pick([
+      `😏 Ooh, **${title}** by *${author}* — solid pick. Adding it. 🎶`,
+      `🎶 **${title}** locked in. Taste! ✨`,
+      `👀 **${title}** by *${author}*? Say less. It's in. 💫`,
+    ]),
 
   queuedPlaylist: (title, count) =>
-    `📚✨ Loaded up the entire **${title}** fantasy — ${count} tracks of pure, uncut serve! 💃🔥`,
+    pick([
+      `📚 Loaded the whole **${title}** — ${count} tracks. Someone came to party. 🔥`,
+      `✨ **${title}** (${count} tracks) is in the queue. Ambitious, I like it. 💃`,
+    ]),
 
   paused: () => pick([
-    '⏸️ Hold that thought, gorgeous. 💋',
-    '⏸️ Pausing for dramatic effect, darling. 🎭',
-    '⏸️ Freeze! Everybody looks fabulous. 🧊✨',
+    '⏸️ Pausing… the drama builds. 🎭',
+    '⏸️ Frozen in place. Everyone strike a pose. 📸',
+    '⏸️ Hold up. Taking a lil breather. 😮‍💨',
   ]),
 
   resumed: () => pick([
-    '▶️ And we are BACK, baby! 💅🔥',
-    '▶️ Press play on the fantasy, honey. 🎶',
-    "▶️ Where were we? Oh right — slaying. 💃",
+    "▶️ And we're back. Miss me? 😏",
+    '▶️ Un-paused. Here we go! 🎶',
+    '▶️ Back to it — press play on the vibe. ✨',
   ]),
 
   skipped: (title) => pick([
-    `⏭️ Buh-bye **${title}** — NEXT! 💅`,
-    `⏭️ Skipped **${title}**, we don't dwell, darling. ✨`,
-    `⏭️ Off you go, **${title}**! Bring me the next bop. 🎶`,
+    `⏭️ Next! **${title}** had its moment. 💅`,
+    `⏭️ Skipped **${title}**. We move. 😏`,
+    `⏭️ Buh-bye **${title}** — bring me the next one. 🎶`,
   ]),
 
   stopped: () => pick([
-    '⏹️ Show\'s over, loves — cleared the whole queue. 👋💖',
-    '⏹️ And... scene. 🎬 Queue wiped spotless, darling. ✨',
+    "⏹️ That's a wrap. Queue's spotless. 👋",
+    '⏹️ Show over, lights up. Cleared the whole queue. ✨',
   ]),
 
   nothingPlaying: () => pick([
-    "🙊 Nothing's playing right now, sweetie — queue something fabulous! 💅",
-    '🔇 Silence?? In MY channel? Add a banger, honey. 🎶',
+    "🙊 Nothing's playing — go on, queue something. 😏",
+    '🔇 Silence? In here? Add a banger. 🎶',
   ]),
 
-  joinVoiceFirst: () => '🎧 Hop into a voice channel first, gorgeous — I can\'t serve to an empty room! 💅',
+  joinVoiceFirst: () => "🎧 Hop in a voice channel first — I'm not singing to an empty room. 😌",
 
-  volumeSet: (level) => `🔊 Volume cranked to **${level}%** — ${level >= 80 ? 'let the neighbours HEAR it! 🔥' : level === 0 ? 'shhh, muted like a secret. 🤫' : 'mmm, just right, darling. 💫'}`,
+  volumeSet: (level) =>
+    `🔊 Volume → **${level}%** ${level >= 80 ? '— bold, I love it. 🔥' : level === 0 ? '— shhh, muted. 🤫' : '— just right. 😎'}`,
 
   shuffled: () => pick([
-    '🔀 Shuffled the queue — chaos is my aesthetic, honey! 💃',
-    '🔀 Mixed it all up, darling. Surprise me. ✨',
+    '🔀 Shuffled. Chaos mode: on. 😈',
+    '🔀 Mixed it up. Surprise me. ✨',
   ]),
 
-  removed: (title) => `🗑️✨ Yeeted **${title}** out of the queue. No notes, no regrets. 💅`,
+  removed: (title) => pick([
+    `🗑️ Yeeted **${title}**. Bye. 💅`,
+    `🗑️ **${title}** is gone. No notes. 😏`,
+  ]),
 
   loopSet: (mode) => {
     const map = {
-      off: '➡️ Loop OFF — living in the moment, darling. 💫',
-      track: '🔂 Looping this one track FOREVER — obsessed, and honestly? valid. 💖',
-      queue: '🔁 Looping the whole queue — the party never ends, honey! 🎉',
+      off: '➡️ Loop off. Living in the moment. 😎',
+      track: '🔂 Looping this one. Obsessed? Same. 💫',
+      queue: '🔁 Looping the whole queue. Party never stops. 🎉',
     };
     return map[mode] || `🔁 Loop set to **${mode}**.`;
   },
 
-  noPermission: () => "🚫💅 Ah-ah — you don't have the keys to the DJ booth in this server, sweetie.",
+  noPermission: () => pick([
+    "🚫 Nice try — you're not on the guest list for the DJ booth. 😏",
+    '🚫 Ah-ah. No booth access for you this time. 💅',
+  ]),
 
-  couldntPlay: () => "😩💔 Ugh, couldn't find or play that one, darling. Try a different link or search term? 🔎",
+  couldntPlay: () => "😬 Couldn't find or play that one. Try a different link or search? 🔎",
 
-  serverOnly: () => '🏠 This one only works inside a server, love. 💌',
+  serverOnly: () => '🏠 This one only works inside a server. 😌',
 
-  genericError: () => '💥 Oop — something went sideways backstage. Try again, gorgeous. 🎭',
+  genericError: () => '💥 Oop — something broke backstage. Try again. 🎭',
 };

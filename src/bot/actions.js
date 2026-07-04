@@ -11,19 +11,19 @@ export class ActionError extends Error {}
 // actually a member of this guild rather than assuming a single global bot.
 function requirePlayer(guildId) {
   const instance = findInstanceForGuild(guildId);
-  if (!instance) throw new ActionError('🥺 None of my bots are in this server right now, darling.');
+  if (!instance) throw new ActionError('🥺 None of my bots are in this server right now.');
   return instance.player;
 }
 
 function requireQueue(guildId) {
   const queue = requirePlayer(guildId).nodes.get(guildId);
-  if (!queue || !queue.currentTrack) throw new ActionError("🙊 Nothing's playing right now, sweetie — queue a bop! 💅");
+  if (!queue || !queue.currentTrack) throw new ActionError("🙊 Nothing's playing — go queue something. 😏");
   return queue;
 }
 
 export async function playTrack({ guildId, voiceChannel, textChannel, query, requestedBy }) {
-  if (!voiceChannel) throw new ActionError('🎧 Hop into a voice channel first, gorgeous! 💅');
-  if (!query) throw new ActionError('🔎 Give me something to play, darling — a name, a link, anything! ✨');
+  if (!voiceChannel) throw new ActionError("🎧 Hop in a voice channel first — I'm not singing to an empty room. 😌");
+  if (!query) throw new ActionError('🔎 Give me something to play — a name, a link, anything. ✨');
 
   const settings = getGuildSettings(guildId);
   const player = requirePlayer(guildId);
@@ -60,13 +60,13 @@ export function skipTrack(guildId) {
 
 export function stopPlayback(guildId) {
   const queue = requirePlayer(guildId).nodes.get(guildId);
-  if (!queue) throw new ActionError("🙊 Nothing's playing right now, sweetie. 💅");
+  if (!queue) throw new ActionError("🙊 Nothing's playing right now. 😏");
   queue.delete();
 }
 
 export function setVolume(guildId, level) {
   if (!Number.isInteger(level) || level < 0 || level > 100) {
-    throw new ActionError('🔊 Volume has to be between 0 and 100, darling. 💫');
+    throw new ActionError('🔊 Volume has to be between 0 and 100. 😎');
   }
   requireQueue(guildId).node.setVolume(level);
 }
@@ -74,7 +74,7 @@ export function setVolume(guildId, level) {
 export function shuffleQueue(guildId) {
   const queue = requirePlayer(guildId).nodes.get(guildId);
   if (!queue || queue.tracks.size < 2) {
-    throw new ActionError('🔀 Need at least two tracks to shuffle, honey — add more bops! 🎶');
+    throw new ActionError('🔀 Need at least two tracks to shuffle — add more bops. 🎶');
   }
   queue.tracks.shuffle();
 }
@@ -82,7 +82,7 @@ export function shuffleQueue(guildId) {
 export function removeTrackAt(guildId, index) {
   const queue = requirePlayer(guildId).nodes.get(guildId);
   const track = queue?.tracks.at(index);
-  if (!track) throw new ActionError("🤷 There's no track at that spot, gorgeous. 💅");
+  if (!track) throw new ActionError("🤷 There's no track at that spot. 😏");
   queue.removeTrack(track);
   return track;
 }
@@ -91,7 +91,7 @@ const LOOP_MODES = { off: QueueRepeatMode.OFF, track: QueueRepeatMode.TRACK, que
 
 export function setLoopMode(guildId, mode) {
   const queue = requireQueue(guildId);
-  if (!(mode in LOOP_MODES)) throw new ActionError('🔁 Loop mode must be off, track, or queue, darling. ✨');
+  if (!(mode in LOOP_MODES)) throw new ActionError('🔁 Loop mode must be off, track, or queue. ✨');
   queue.setRepeatMode(LOOP_MODES[mode]);
 }
 

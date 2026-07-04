@@ -6,11 +6,11 @@ import { buildQueueSnapshot } from '../queueState.js';
 const ACCENT = 0x58a6ff;
 
 const START_LINES = [
-  '💅 Serving you a fresh track, darling',
-  '✨ And now, the moment you deserve',
-  '🎀 Turn it UP, gorgeous',
-  '🌈 Yasss, spinning this one just for you',
-  '💃 Time to slay the dancefloor',
+  '🎶 Now spinning',
+  '😏 Up next, and it slaps',
+  '✨ Fresh off the queue',
+  '🔊 Turn it up',
+  '💫 Vibe check — playing now',
 ];
 
 function pick(arr) {
@@ -44,7 +44,7 @@ async function postNowPlaying(queue, track) {
       .setAuthor({ name: pick(START_LINES) })
       .setTitle(track.title)
       .setURL(track.url || null)
-      .setDescription(`by **${track.author || 'someone fabulous'}** 💖`)
+      .setDescription(`by **${track.author || 'someone with taste'}** 🎧`)
       .setThumbnail(track.thumbnail || null)
       .setFooter({
         text: track.requestedBy ? `Requested by ${track.requestedBy.username} · length ${track.duration}` : `Length ${track.duration}`,

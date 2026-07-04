@@ -11,11 +11,11 @@ export async function execute(interaction) {
       .toArray()
       .slice(0, 10)
       .map((t, i) => `\`${i + 1}.\` ${t.title} — *${t.author}*`)
-      .join('\n') || '✨ Nothing lined up yet — add more bops, honey! 🎶';
+      .join('\n') || '✨ Nothing lined up yet — add more bops. 🎶';
 
   const embed = new EmbedBuilder()
     .setColor(0x58a6ff)
-    .setAuthor({ name: '💅 The lineup, darling' })
+    .setAuthor({ name: '😏 The lineup' })
     .setDescription(`🎶 **Now playing:** ${queue.currentTrack.title}\n\n${upcoming}`)
     .setThumbnail(queue.currentTrack.thumbnail || null);
 

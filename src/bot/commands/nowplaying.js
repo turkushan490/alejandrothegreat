@@ -8,10 +8,10 @@ export async function execute(interaction) {
   const track = queue.currentTrack;
   const embed = new EmbedBuilder()
     .setColor(0x58a6ff)
-    .setAuthor({ name: '🎶 Now serving, darling' })
+    .setAuthor({ name: '🎶 Now playing' })
     .setTitle(track.title)
     .setURL(track.url || null)
-    .setDescription(`by **${track.author}** 💖\n\n${queue.node.createProgressBar()}`)
+    .setDescription(`by **${track.author}** 🎧\n\n${queue.node.createProgressBar()}`)
     .setThumbnail(track.thumbnail || null);
   await interaction.reply({ embeds: [embed] });
 }

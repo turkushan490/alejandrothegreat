@@ -29,7 +29,7 @@ const HANDLERS = {
       return;
     }
     if (!args) {
-      await message.reply('🔎 Give me something to play, darling — `<prefix>play <song, link, or search>`! ✨');
+      await message.reply('🔎 Give me something to play — `<prefix>play <song, link, or search>`. ✨');
       return;
     }
     const { track, playlist } = await playTrack({
