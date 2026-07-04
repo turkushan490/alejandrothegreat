@@ -283,11 +283,16 @@ input[type="range"] { accent-color: var(--accent); cursor: pointer; }
 }
 #searchInput:focus { outline: none; border-color: var(--accent); }
 #searchForm button {
+  /* override the global button[type=submit] { width:100% } used by the
+     setup forms - here the input should grow, not the button. */
+  width: auto;
+  flex: 0 0 auto;
   background: var(--accent);
   border: none;
   color: #06101f;
   border-radius: 8px;
-  padding: 0 20px;
+  padding: 0 24px;
+  margin: 0;
   cursor: pointer;
   font-weight: 700;
   font-size: 14px;

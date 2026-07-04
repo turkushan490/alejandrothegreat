@@ -74,10 +74,14 @@ function requireControl(req, res, next) {
 }
 
 function handleAction(fn) {
-  return (req, res) => {
+  return async (req, res) => {
     try {
-      const result = fn(req);
-      res.json({ ok: true, ...(result || {}) });
+      // Await so async actions (play) surface their errors here, and don't
+      // return the raw result - discord-player Track/Queue objects have
+      // circular references that crash res.json(). The dashboard updates
+      // itself from the socket state push, not this response.
+      await fn(req);
+      res.json({ ok: true });
     } catch (err) {
       if (err instanceof ActionError) {
         res.status(400).json({ error: err.message });
