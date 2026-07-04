@@ -17,25 +17,35 @@ export function resolveAnnounceChannel(guild) {
   return guild.channels.cache.find((ch) => canSend(ch)) || null;
 }
 
+const LOOP_LABEL = ['', '🔂 Track', '🔁 Queue'];
+
 function buildEmbed(queue) {
   const t = queue.currentTrack;
+  // Timecoded bar mirrors the web card: "01:23 ┃━━━🔘────┃ 05:12".
   let bar = '';
   try {
-    bar = queue.node.createProgressBar({ length: 18 }) || '';
+    bar = queue.node.createProgressBar({ length: 16, timecodes: true }) || '';
   } catch {
     /* live streams have no progress bar */
   }
   const paused = queue.node.isPaused();
+  const loop = LOOP_LABEL[queue.repeatMode] || '';
+  const footerBits = [
+    `${queue.tracks.size} in queue`,
+    `vol ${queue.node.volume}%`,
+    loop,
+    t.requestedBy ? `added by ${t.requestedBy.username}` : '',
+  ].filter(Boolean);
+
   return new EmbedBuilder()
     .setColor(ACCENT)
     .setAuthor({ name: paused ? '⏸ Paused' : '🎶 Now playing' })
     .setTitle(t.title)
     .setURL(t.url || null)
     .setDescription(`by **${t.author || 'unknown'}**${bar ? `\n\n${bar}` : ''}`)
-    .setThumbnail(t.thumbnail || null)
-    .setFooter({
-      text: `${queue.tracks.size} in queue · vol ${queue.node.volume}%${t.requestedBy ? ` · added by ${t.requestedBy.username}` : ''}`,
-    });
+    // Big album art (like the web card), not the little corner thumbnail.
+    .setImage(t.thumbnail || null)
+    .setFooter({ text: footerBits.join(' · ') });
 }
 
 function buildButtons(paused) {
@@ -46,6 +56,7 @@ function buildButtons(paused) {
       .setStyle(paused ? ButtonStyle.Success : ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('np_skip').setEmoji('⏭️').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('np_shuffle').setEmoji('🔀').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('np_loop').setEmoji('🔁').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('np_stop').setEmoji('⏹️').setStyle(ButtonStyle.Danger)
   );
 }

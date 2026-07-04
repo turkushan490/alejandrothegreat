@@ -1,4 +1,4 @@
-import { ActionError, pauseTrack, resumeTrack, shuffleQueue, skipTrack, stopPlayback } from '../actions.js';
+import { ActionError, pauseTrack, resumeTrack, setLoopMode, shuffleQueue, skipTrack, stopPlayback } from '../actions.js';
 import { flair } from '../flair.js';
 import { announce, updateNowPlaying } from '../nowplaying.js';
 import { canControl } from '../permissions.js';
@@ -42,6 +42,15 @@ async function handleNowPlayingButton(interaction) {
       case 'np_shuffle': {
         shuffleQueue(guildId);
         await announce(interaction.guild, `🔀 **${who}** shuffled the queue.`);
+        break;
+      }
+      case 'np_loop': {
+        const { findInstanceForGuild } = await import('../manager.js');
+        const q = findInstanceForGuild(guildId)?.player.nodes.get(guildId);
+        const cur = q?.repeatMode ?? 0;
+        const next = cur === 0 ? 'track' : cur === 1 ? 'queue' : 'off';
+        setLoopMode(guildId, next);
+        await announce(interaction.guild, `🔁 **${who}** set loop to **${next}**.`);
         break;
       }
       case 'np_stop': {
