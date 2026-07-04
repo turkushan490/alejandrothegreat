@@ -1,3 +1,4 @@
+import { EmbedBuilder } from 'discord.js';
 import { getGuildSettings } from '../../db.js';
 import {
   ActionError,
@@ -13,6 +14,7 @@ import {
   skipTrack,
   stopPlayback,
 } from '../actions.js';
+import { flair } from '../flair.js';
 import { canControl } from '../permissions.js';
 
 const CONTROL_COMMANDS = new Set([
@@ -23,11 +25,11 @@ const HANDLERS = {
   async play(message, args) {
     const voiceChannel = message.member?.voice?.channel;
     if (!voiceChannel) {
-      await message.reply('Join a voice channel first.');
+      await message.reply(flair.joinVoiceFirst());
       return;
     }
     if (!args) {
-      await message.reply('Usage: `<prefix>play <Spotify link, YouTube link, or search terms>`');
+      await message.reply('🔎 Give me something to play, darling — `<prefix>play <song, link, or search>`! ✨');
       return;
     }
     const { track, playlist } = await playTrack({
@@ -38,24 +40,24 @@ const HANDLERS = {
       requestedBy: message.author,
     });
     await message.reply(
-      playlist ? `Queued playlist **${playlist.title}** (${playlist.tracks.length} tracks).` : `Queued **${track.title}** by ${track.author}.`
+      playlist ? flair.queuedPlaylist(playlist.title, playlist.tracks.length) : flair.queued(track.title, track.author)
     );
   },
   async pause(message) {
     pauseTrack(message.guild.id);
-    await message.reply('Paused.');
+    await message.reply(flair.paused());
   },
   async resume(message) {
     resumeTrack(message.guild.id);
-    await message.reply('Resumed.');
+    await message.reply(flair.resumed());
   },
   async skip(message) {
     const current = skipTrack(message.guild.id);
-    await message.reply(`Skipped **${current.title}**.`);
+    await message.reply(flair.skipped(current.title));
   },
   async stop(message) {
     stopPlayback(message.guild.id);
-    await message.reply('Stopped playback and cleared the queue.');
+    await message.reply(flair.stopped());
   },
   async queue(message) {
     const queue = listQueue(message.guild.id);
@@ -63,32 +65,45 @@ const HANDLERS = {
       queue.tracks
         .toArray()
         .slice(0, 10)
-        .map((t, i) => `${i + 1}. ${t.title} - ${t.author}`)
-        .join('\n') || 'Queue is empty.';
-    await message.reply(`**Now playing:** ${queue.currentTrack.title}\n\n${upcoming}`);
+        .map((t, i) => `\`${i + 1}.\` ${t.title} — *${t.author}*`)
+        .join('\n') || '✨ Nothing lined up yet — add more bops, honey! 🎶';
+    const embed = new EmbedBuilder()
+      .setColor(0x58a6ff)
+      .setAuthor({ name: '💅 The lineup, darling' })
+      .setDescription(`🎶 **Now playing:** ${queue.currentTrack.title}\n\n${upcoming}`)
+      .setThumbnail(queue.currentTrack.thumbnail || null);
+    await message.reply({ embeds: [embed] });
   },
   async nowplaying(message) {
     const queue = nowPlaying(message.guild.id);
-    await message.reply(`**${queue.currentTrack.title}** by ${queue.currentTrack.author}\n${queue.node.createProgressBar()}`);
+    const track = queue.currentTrack;
+    const embed = new EmbedBuilder()
+      .setColor(0x58a6ff)
+      .setAuthor({ name: '🎶 Now serving, darling' })
+      .setTitle(track.title)
+      .setURL(track.url || null)
+      .setDescription(`by **${track.author}** 💖\n\n${queue.node.createProgressBar()}`)
+      .setThumbnail(track.thumbnail || null);
+    await message.reply({ embeds: [embed] });
   },
   async volume(message, args) {
     const level = Number(args);
     setVolume(message.guild.id, level);
-    await message.reply(`Volume set to ${level}%.`);
+    await message.reply(flair.volumeSet(level));
   },
   async shuffle(message) {
     shuffleQueue(message.guild.id);
-    await message.reply('Shuffled the queue.');
+    await message.reply(flair.shuffled());
   },
   async remove(message, args) {
     const position = Number(args);
     const track = removeTrackAt(message.guild.id, position - 1);
-    await message.reply(`Removed **${track.title}** from the queue.`);
+    await message.reply(flair.removed(track.title));
   },
   async loop(message, args) {
     const mode = (args || '').toLowerCase();
     setLoopMode(message.guild.id, mode);
-    await message.reply(`Loop mode set to **${mode}**.`);
+    await message.reply(flair.loopSet(mode));
   },
 };
 
@@ -108,14 +123,14 @@ export default async function messageCreate(message) {
   if (!handler) return;
 
   if (CONTROL_COMMANDS.has(name) && !canControl(message.member)) {
-    await message.reply("You don't have permission to control playback in this server.");
+    await message.reply(flair.noPermission());
     return;
   }
 
   try {
     await handler(message, rest.join(' '));
   } catch (err) {
-    const text = err instanceof ActionError ? err.message : 'Something went wrong running that command.';
+    const text = err instanceof ActionError ? err.message : flair.genericError();
     if (!(err instanceof ActionError)) {
       console.error(`[bot] error running prefix command "${name}":`, err);
     }

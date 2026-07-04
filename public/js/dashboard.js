@@ -1,6 +1,9 @@
 (async () => {
   await loadUser();
 
+  const esc = (s) =>
+    String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
   const grid = document.getElementById('guildGrid');
   try {
     const { guilds } = await api('/api/guilds');
@@ -9,18 +12,21 @@
       return;
     }
     grid.innerHTML = guilds
-      .map(
-        (g) => `
+      .map((g) => {
+        const sub = g.nowPlaying
+          ? `<div class="track-author">🎶 ${esc(g.nowPlaying)}</div>`
+          : `<div class="muted">${g.memberCount} members &middot; ${esc(g.botName)}</div>`;
+        return `
       <a class="guild-card" href="/guild.html?id=${g.id}">
-        <div class="guild-icon">${g.icon ? `<img src="${g.icon}" alt="">` : g.name[0]}</div>
-        <div>
-          <div>${g.name}${g.playing ? '<span class="playing-dot" title="Playing"></span>' : ''}</div>
-          <div class="muted">${g.memberCount} members &middot; ${g.botName}</div>
+        <div class="guild-icon">${g.icon ? `<img src="${esc(g.icon)}" alt="">` : esc(g.name[0])}</div>
+        <div class="queue-meta">
+          <div class="track-title">${esc(g.name)}${g.playing ? '<span class="playing-dot" title="Playing"></span>' : ''}</div>
+          ${sub}
         </div>
-      </a>`
-      )
+      </a>`;
+      })
       .join('');
   } catch (err) {
-    grid.innerHTML = `<div class="error-banner">${err.message}</div>`;
+    grid.innerHTML = `<div class="error-banner">${esc(err.message)}</div>`;
   }
 })();

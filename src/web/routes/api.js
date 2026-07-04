@@ -38,6 +38,7 @@ apiRouter.get('/guilds', (req, res) => {
         icon: g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : null,
         memberCount: guild.memberCount,
         playing: Boolean(queue?.currentTrack),
+        nowPlaying: queue?.currentTrack ? `${queue.currentTrack.title}` : null,
         botName: bot?.name || 'Bot',
       });
     }

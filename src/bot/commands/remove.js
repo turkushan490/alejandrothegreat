@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { removeTrackAt } from '../actions.js';
+import { flair } from '../flair.js';
 
 export const data = new SlashCommandBuilder()
   .setName('remove')
@@ -11,5 +12,5 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const position = interaction.options.getInteger('position', true);
   const track = removeTrackAt(interaction.guild.id, position - 1);
-  await interaction.reply(`Removed **${track.title}** from the queue.`);
+  await interaction.reply(flair.removed(track.title));
 }

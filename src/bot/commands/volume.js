@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { setVolume } from '../actions.js';
+import { flair } from '../flair.js';
 
 export const data = new SlashCommandBuilder()
   .setName('volume')
@@ -11,5 +12,5 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const level = interaction.options.getInteger('level', true);
   setVolume(interaction.guild.id, level);
-  await interaction.reply(`Volume set to ${level}%.`);
+  await interaction.reply(flair.volumeSet(level));
 }

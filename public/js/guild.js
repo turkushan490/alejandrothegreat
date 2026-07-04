@@ -11,12 +11,55 @@
   let canControl = false;
   let isManager = false;
 
+  // Local progress ticker so the bar keeps moving smoothly between the
+  // socket updates the server pushes.
+  let progressState = null; // { currentMs, totalMs, playing }
+  let lastTick = Date.now();
+
+  const esc = (s) =>
+    String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function fmt(ms) {
+    if (!Number.isFinite(ms) || ms < 0) ms = 0;
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    return `${m}:${String(s % 60).padStart(2, '0')}`;
+  }
+
   function renderState(state) {
     const npEl = document.getElementById('nowPlaying');
-    npEl.innerHTML = state.track
-      ? `<div class="track-title">${state.track.title}</div>
-         <div class="track-author">${state.track.author} &middot; ${state.paused ? 'Paused' : 'Playing'}</div>`
-      : '<p class="muted">Nothing is playing.</p>';
+    if (state.track) {
+      const t = state.track;
+      const art = t.thumbnail
+        ? `<img class="np-art" src="${esc(t.thumbnail)}" alt="">`
+        : '<div class="np-art"></div>';
+      npEl.innerHTML = `
+        ${art}
+        <div class="np-info">
+          <div class="np-title">${esc(t.title)}</div>
+          <div class="np-author">${esc(t.author)}</div>
+          <div class="np-status ${state.paused ? 'paused' : ''}">${state.paused ? '⏸ Paused' : '✨ Now playing'}</div>
+        </div>`;
+    } else {
+      npEl.innerHTML = '<p class="muted">Nothing is playing right now — queue something fabulous below. 💅</p>';
+    }
+
+    // progress
+    const wrap = document.getElementById('progressWrap');
+    if (state.track && state.progress && state.progress.totalMs > 0) {
+      progressState = {
+        currentMs: state.progress.currentMs,
+        totalMs: state.progress.totalMs,
+        playing: state.playing,
+      };
+      lastTick = Date.now();
+      wrap.hidden = false;
+      document.getElementById('progressTotal').textContent = fmt(state.progress.totalMs);
+      paintProgress();
+    } else {
+      progressState = null;
+      wrap.hidden = true;
+    }
 
     document.getElementById('controls').hidden = !canControl;
     document.getElementById('volume').value = state.volume;
@@ -26,10 +69,36 @@
     const queueList = document.getElementById('queueList');
     queueList.innerHTML = state.queue.length
       ? state.queue
-          .map((t) => `<li><span class="track-title">${t.title}</span><span class="track-author">${t.author}</span></li>`)
+          .map(
+            (t, i) => `<li>
+              <span class="queue-num">${i + 1}</span>
+              <span class="queue-meta">
+                <span class="track-title">${esc(t.title)}</span>
+                <span class="track-author">${esc(t.author)}</span>
+              </span>
+            </li>`
+          )
           .join('')
-      : '<li class="muted">Queue is empty.</li>';
+      : '<li class="muted">Queue is empty — add more bangers. 🎶</li>';
   }
+
+  function paintProgress() {
+    if (!progressState) return;
+    const pct = Math.min(100, (progressState.currentMs / progressState.totalMs) * 100);
+    document.getElementById('progressFill').style.width = `${pct}%`;
+    document.getElementById('progressCurrent').textContent = fmt(progressState.currentMs);
+  }
+
+  setInterval(() => {
+    if (!progressState) return;
+    const now = Date.now();
+    const delta = now - lastTick;
+    lastTick = now;
+    if (progressState.playing) {
+      progressState.currentMs = Math.min(progressState.totalMs, progressState.currentMs + delta);
+      paintProgress();
+    }
+  }, 1000);
 
   async function setupSettingsPanel(settings) {
     const panel = document.getElementById('settingsPanel');

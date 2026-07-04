@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { setLoopMode } from '../actions.js';
+import { flair } from '../flair.js';
 
 export const data = new SlashCommandBuilder()
   .setName('loop')
@@ -19,5 +20,5 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const mode = interaction.options.getString('mode', true);
   setLoopMode(interaction.guild.id, mode);
-  await interaction.reply(`Loop mode set to **${mode}**.`);
+  await interaction.reply(flair.loopSet(mode));
 }

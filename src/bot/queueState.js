@@ -26,8 +26,35 @@ function loopModeToString(mode) {
 
 export function buildQueueSnapshot(queue) {
   if (!queue || !queue.currentTrack) {
-    return { playing: false, paused: false, track: null, queue: [], volume: 100, loopMode: 'off' };
+    return {
+      playing: false,
+      paused: false,
+      track: null,
+      queue: [],
+      volume: 100,
+      loopMode: 'off',
+      progress: null,
+    };
   }
+
+  // Timestamps let the web dashboard render (and animate) a real progress bar
+  // that keeps ticking between socket updates.
+  let progress = null;
+  try {
+    const ts = queue.node.getTimestamp();
+    if (ts) {
+      progress = {
+        currentMs: ts.current.value,
+        totalMs: ts.total.value,
+        currentLabel: ts.current.label,
+        totalLabel: ts.total.label,
+        percent: ts.progress,
+      };
+    }
+  } catch {
+    // getTimestamp can throw for live/streamed tracks - just omit progress.
+  }
+
   return {
     playing: !queue.node.isPaused(),
     paused: queue.node.isPaused(),
@@ -35,5 +62,6 @@ export function buildQueueSnapshot(queue) {
     queue: queue.tracks.toArray().map(serializeTrack),
     volume: queue.node.volume,
     loopMode: loopModeToString(queue.repeatMode),
+    progress,
   };
 }

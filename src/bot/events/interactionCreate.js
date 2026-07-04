@@ -1,4 +1,5 @@
 import { ActionError } from '../actions.js';
+import { flair } from '../flair.js';
 import { canControl } from '../permissions.js';
 
 // Commands that change playback and are subject to the guild's control-mode setting.
@@ -15,22 +16,19 @@ export default async function interactionCreate(interaction) {
   if (!command) return;
 
   if (!interaction.guild) {
-    await interaction.reply({ content: 'This command only works inside a server.', ephemeral: true });
+    await interaction.reply({ content: flair.serverOnly(), ephemeral: true });
     return;
   }
 
   if (CONTROL_COMMANDS.has(interaction.commandName) && !canControl(interaction.member)) {
-    await interaction.reply({
-      content: "You don't have permission to control playback in this server.",
-      ephemeral: true,
-    });
+    await interaction.reply({ content: flair.noPermission(), ephemeral: true });
     return;
   }
 
   try {
     await command.execute(interaction);
   } catch (err) {
-    const message = err instanceof ActionError ? err.message : 'Something went wrong running that command.';
+    const message = err instanceof ActionError ? err.message : flair.genericError();
     if (!(err instanceof ActionError)) {
       console.error(`[bot] error running /${interaction.commandName}:`, err);
     }

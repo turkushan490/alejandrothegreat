@@ -13,24 +13,33 @@
   <div class="user-area" id="userArea"></div>
 </header>
 <main class="container">
-  <p class="muted" id="botNameLabel" style="margin-top: 0;"></p>
-  <section class="now-playing card" id="nowPlaying">
-    <p class="muted">Loading...</p>
+  <p class="bot-label" id="botNameLabel"></p>
+  <section class="card" id="nowPlayingCard">
+    <div class="now-playing" id="nowPlaying">
+      <p class="muted">Loading…</p>
+    </div>
+    <div class="progress-wrap" id="progressWrap" hidden>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-times">
+        <span id="progressCurrent">0:00</span>
+        <span id="progressTotal">0:00</span>
+      </div>
+    </div>
   </section>
 
   <section class="controls card" id="controls" hidden>
-    <button id="btnPause" title="Pause">Pause</button>
-    <button id="btnResume" title="Resume">Resume</button>
-    <button id="btnSkip" title="Skip">Skip</button>
-    <button id="btnStop" title="Stop">Stop</button>
-    <button id="btnShuffle" title="Shuffle">Shuffle</button>
-    <select id="loopMode">
-      <option value="off">Loop: Off</option>
-      <option value="track">Loop: Track</option>
-      <option value="queue">Loop: Queue</option>
+    <button class="ctrl-btn" id="btnPause" title="Pause">⏸️</button>
+    <button class="ctrl-btn" id="btnResume" title="Resume">▶️</button>
+    <button class="ctrl-btn" id="btnSkip" title="Skip">⏭️</button>
+    <button class="ctrl-btn danger" id="btnStop" title="Stop">⏹️</button>
+    <button class="ctrl-btn" id="btnShuffle" title="Shuffle">🔀</button>
+    <select id="loopMode" title="Loop mode">
+      <option value="off">🔁 Loop: Off</option>
+      <option value="track">🔂 Loop: Track</option>
+      <option value="queue">🔁 Loop: Queue</option>
     </select>
     <div class="volume-row">
-      <label for="volume">Volume</label>
+      <label for="volume">🔊</label>
       <input type="range" id="volume" min="0" max="100" value="100">
       <span id="volumeValue">100</span>
     </div>

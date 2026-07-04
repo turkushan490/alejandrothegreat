@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { ActionError, playTrack } from '../actions.js';
+import { flair } from '../flair.js';
 
 export const data = new SlashCommandBuilder()
   .setName('play')
@@ -11,7 +12,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const voiceChannel = interaction.member?.voice?.channel;
   if (!voiceChannel) {
-    await interaction.reply({ content: 'Join a voice channel first.', ephemeral: true });
+    await interaction.reply({ content: flair.joinVoiceFirst(), ephemeral: true });
     return;
   }
 
@@ -27,14 +28,10 @@ export async function execute(interaction) {
       requestedBy: interaction.user,
     });
     await interaction.editReply(
-      playlist
-        ? `Queued playlist **${playlist.title}** (${playlist.tracks.length} tracks).`
-        : `Queued **${track.title}** by ${track.author}.`
+      playlist ? flair.queuedPlaylist(playlist.title, playlist.tracks.length) : flair.queued(track.title, track.author)
     );
   } catch (err) {
     console.error('[bot] play command failed:', err);
-    await interaction.editReply(
-      err instanceof ActionError ? err.message : "Couldn't find or play that. Try a different link or search term."
-    );
+    await interaction.editReply(err instanceof ActionError ? err.message : flair.couldntPlay());
   }
 }
