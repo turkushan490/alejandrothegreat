@@ -2,6 +2,7 @@ import { PermissionFlagsBits } from 'discord.js';
 import { Router } from 'express';
 import {
   ActionError,
+  clearQueue,
   pauseTrack,
   playTrack,
   removeTrackAt,
@@ -13,10 +14,18 @@ import {
   stopPlayback,
 } from '../../bot/actions.js';
 import { findInstanceForGuild, getAllInstances } from '../../bot/manager.js';
+import { announce, resolveAnnounceChannel } from '../../bot/nowplaying.js';
 import { canControl } from '../../bot/permissions.js';
 import { buildQueueSnapshot } from '../../bot/queueState.js';
 import { getBot, getGuildSettings, updateGuildSettings } from '../../db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+
+// Posts "X did Y (via dashboard)" into the guild's chat so people in Discord
+// see who's driving from the web.
+function announceWeb(req, text) {
+  const who = req.discordMember?.displayName || req.session.user?.username || 'Someone';
+  announce(req.discordGuild, `${text} · **${who}** (via dashboard)`).catch(() => {});
+}
 
 export const apiRouter = Router();
 
@@ -139,17 +148,21 @@ apiRouter.post(
   '/guilds/:guildId/play',
   loadMember,
   requireControl,
-  handleAction((req) => {
+  handleAction(async (req) => {
     const query = String(req.body.query || '').trim();
     const voiceChannel = req.discordMember.voice.channel;
     if (!voiceChannel) throw new ActionError('Join a voice channel in Discord first.');
-    return playTrack({
+    const { track, playlist } = await playTrack({
       guildId: req.params.guildId,
       voiceChannel,
-      textChannel: null,
+      // Web plays have no originating chat channel, so give the now-playing
+      // message + announcements somewhere sensible to live.
+      textChannel: resolveAnnounceChannel(req.discordGuild),
       query,
       requestedBy: req.discordMember.user,
     });
+    const label = playlist ? `playlist **${playlist.title}**` : `**${track.title}**`;
+    announceWeb(req, `➕ Added ${label}`);
   })
 );
 
@@ -157,56 +170,91 @@ apiRouter.post(
   '/guilds/:guildId/pause',
   loadMember,
   requireControl,
-  handleAction((req) => pauseTrack(req.params.guildId))
+  handleAction((req) => {
+    pauseTrack(req.params.guildId);
+    announceWeb(req, '⏸️ Paused');
+  })
 );
 
 apiRouter.post(
   '/guilds/:guildId/resume',
   loadMember,
   requireControl,
-  handleAction((req) => resumeTrack(req.params.guildId))
+  handleAction((req) => {
+    resumeTrack(req.params.guildId);
+    announceWeb(req, '▶️ Resumed');
+  })
 );
 
 apiRouter.post(
   '/guilds/:guildId/skip',
   loadMember,
   requireControl,
-  handleAction((req) => skipTrack(req.params.guildId))
+  handleAction((req) => {
+    const track = skipTrack(req.params.guildId);
+    announceWeb(req, `⏭️ Skipped **${track.title}**`);
+  })
 );
 
 apiRouter.post(
   '/guilds/:guildId/stop',
   loadMember,
   requireControl,
-  handleAction((req) => stopPlayback(req.params.guildId))
+  handleAction((req) => {
+    stopPlayback(req.params.guildId);
+    announceWeb(req, '⏹️ Stopped the music');
+  })
 );
 
 apiRouter.post(
   '/guilds/:guildId/volume',
   loadMember,
   requireControl,
-  handleAction((req) => setVolume(req.params.guildId, Number(req.body.level)))
+  handleAction((req) => {
+    const level = Number(req.body.level);
+    setVolume(req.params.guildId, level);
+    announceWeb(req, `🔊 Set volume to ${level}%`);
+  })
 );
 
 apiRouter.post(
   '/guilds/:guildId/shuffle',
   loadMember,
   requireControl,
-  handleAction((req) => shuffleQueue(req.params.guildId))
+  handleAction((req) => {
+    shuffleQueue(req.params.guildId);
+    announceWeb(req, '🔀 Shuffled the queue');
+  })
+);
+
+apiRouter.post(
+  '/guilds/:guildId/clear',
+  loadMember,
+  requireControl,
+  handleAction((req) => {
+    const count = clearQueue(req.params.guildId);
+    announceWeb(req, `🧹 Cleared ${count} track${count === 1 ? '' : 's'}`);
+  })
 );
 
 apiRouter.post(
   '/guilds/:guildId/remove',
   loadMember,
   requireControl,
-  handleAction((req) => removeTrackAt(req.params.guildId, Number(req.body.index)))
+  handleAction((req) => {
+    const track = removeTrackAt(req.params.guildId, Number(req.body.index));
+    announceWeb(req, `🗑️ Removed **${track.title}**`);
+  })
 );
 
 apiRouter.post(
   '/guilds/:guildId/loop',
   loadMember,
   requireControl,
-  handleAction((req) => setLoopMode(req.params.guildId, req.body.mode))
+  handleAction((req) => {
+    setLoopMode(req.params.guildId, req.body.mode);
+    announceWeb(req, `🔁 Set loop to ${req.body.mode}`);
+  })
 );
 
 apiRouter.post('/guilds/:guildId/settings', loadMember, (req, res) => {
@@ -214,20 +262,14 @@ apiRouter.post('/guilds/:guildId/settings', loadMember, (req, res) => {
     res.status(403).json({ error: 'Only server managers can change this setting.' });
     return;
   }
-  const { controlMode, djRoleId, prefix } = req.body;
+  const { controlMode, djRoleId } = req.body;
   if (!['everyone', 'managers', 'dj-role'].includes(controlMode)) {
     res.status(400).json({ error: 'Invalid control mode.' });
-    return;
-  }
-  const trimmedPrefix = String(prefix || '!').trim().slice(0, 5);
-  if (!trimmedPrefix) {
-    res.status(400).json({ error: 'Prefix cannot be empty.' });
     return;
   }
   const settings = updateGuildSettings(req.params.guildId, {
     controlMode,
     djRoleId: djRoleId || null,
-    prefix: trimmedPrefix,
   });
   res.json({ settings });
 });

@@ -105,7 +105,6 @@
     panel.hidden = !isManager;
     if (!isManager) return;
 
-    document.getElementById('prefixInput').value = settings.prefix;
     document.getElementById('controlModeSelect').value = settings.controlMode;
     document.getElementById('djRoleRow').hidden = settings.controlMode !== 'dj-role';
 
@@ -151,6 +150,7 @@
   document.getElementById('btnSkip').addEventListener('click', () => act('skip'));
   document.getElementById('btnStop').addEventListener('click', () => act('stop'));
   document.getElementById('btnShuffle').addEventListener('click', () => act('shuffle'));
+  document.getElementById('btnClear').addEventListener('click', () => act('clear'));
 
   document.getElementById('loopMode').addEventListener('change', (e) => act('loop', { mode: e.target.value }));
 
@@ -179,7 +179,6 @@
     const errorEl = document.getElementById('settingsError');
     errorEl.hidden = true;
     const body = {
-      prefix: document.getElementById('prefixInput').value.trim() || '!',
       controlMode: document.getElementById('controlModeSelect').value,
       djRoleId: document.getElementById('djRoleSelect').value || null,
     };

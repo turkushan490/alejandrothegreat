@@ -456,6 +456,21 @@ button[type="submit"] {
 .callout-title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .callout-body { font-size: 14px; color: var(--body); }
 
+.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 14px;
+}
+.cmd-table td { padding: 11px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--body); }
+.cmd-table tr:last-child td { border-bottom: none; }
+.cmd-table tr:hover td { background: var(--row-hover); }
+.cmd-table td:first-child { white-space: nowrap; width: 1%; }
+.cmd-table code { background: var(--surface-hi); }
+
 .site-footer {
   max-width: 1100px;
   margin: 20px auto 0;

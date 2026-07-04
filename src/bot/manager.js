@@ -14,7 +14,6 @@ import { getBot, listBots } from '../db.js';
 import { commands } from './commands/index.js';
 import { registerPlayerEvents } from './events/playerEvents.js';
 import interactionCreateEvent from './events/interactionCreate.js';
-import messageCreateEvent from './events/messageCreate.js';
 import readyEvent from './events/ready.js';
 
 // Runs once at startup so a broken audio pipeline (missing ffmpeg/opus)
@@ -112,13 +111,10 @@ export async function startBotInstance(botId) {
     await stopBotInstance(botId);
     await logAudioPipelineDiagnostics();
 
+    // Slash commands + interaction buttons only - no message-content
+    // reading, so no privileged Message Content intent needed.
     const newClient = new Client({
-      intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-      ],
+      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
     });
     newClient.commands = commands;
 
@@ -144,7 +140,6 @@ export async function startBotInstance(botId) {
 
     newClient.once('ready', readyEvent);
     newClient.on('interactionCreate', interactionCreateEvent);
-    newClient.on('messageCreate', messageCreateEvent);
 
     instances.set(botId, { client: newClient, player: newPlayer });
 

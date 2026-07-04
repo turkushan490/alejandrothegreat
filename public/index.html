@@ -52,17 +52,36 @@
   <div class="guide-grid">
     <div class="card">
       <div class="track-title">🖥️ Web dashboard</div>
-      <p class="muted">Right here — the full control panel with a live progress bar.</p>
+      <p class="muted">Right here — the full control panel with a live progress bar and buttons.</p>
     </div>
     <div class="card">
       <div class="track-title">⚡ Slash commands</div>
-      <p class="muted"><code>/play</code>, <code>/skip</code>, <code>/queue</code>, <code>/volume</code> and more, in Discord.</p>
+      <p class="muted"><code>/play</code>, <code>/skip</code>, <code>/queue</code> and more, in Discord. <a href="#commands">See all commands →</a></p>
     </div>
     <div class="card">
-      <div class="track-title">💬 Text commands</div>
-      <p class="muted"><code>!play never gonna give you up</code> — prefix is changeable per server.</p>
+      <div class="track-title">🎛️ In-chat buttons</div>
+      <p class="muted">The bot posts a live "now playing" message with Pause / Skip / Shuffle / Stop buttons you can tap.</p>
     </div>
   </div>
+
+  <h2 class="section-h" id="commands">All slash commands</h2>
+  <table class="cmd-table">
+    <tbody>
+      <tr><td><code>/play &lt;song or link&gt;</code></td><td>Play or queue a song, playlist, or link (Spotify / YouTube / search)</td></tr>
+      <tr><td><code>/pause</code></td><td>Pause the current track</td></tr>
+      <tr><td><code>/resume</code></td><td>Resume playback</td></tr>
+      <tr><td><code>/skip</code></td><td>Skip to the next track</td></tr>
+      <tr><td><code>/stop</code></td><td>Stop playback and clear everything</td></tr>
+      <tr><td><code>/queue</code></td><td>Show what's coming up</td></tr>
+      <tr><td><code>/nowplaying</code></td><td>Show the current track with a progress bar</td></tr>
+      <tr><td><code>/volume &lt;0-100&gt;</code></td><td>Set the volume</td></tr>
+      <tr><td><code>/shuffle</code></td><td>Shuffle the queue</td></tr>
+      <tr><td><code>/clear</code></td><td>Clear the queue (keeps the current song playing)</td></tr>
+      <tr><td><code>/remove &lt;position&gt;</code></td><td>Remove one track from the queue</td></tr>
+      <tr><td><code>/loop &lt;off·track·queue&gt;</code></td><td>Set the loop mode</td></tr>
+      <tr><td><code>/dj &lt;everyone·managers·role&gt;</code></td><td>(Manage Server) Choose who's allowed to control the music</td></tr>
+    </tbody>
+  </table>
 
   <div class="callout">
     <div class="callout-title">🛠️ Self-hosted &amp; open source</div>

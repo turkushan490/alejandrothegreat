@@ -33,6 +33,7 @@
     <button class="ctrl-btn" id="btnSkip" title="Skip">⏭️</button>
     <button class="ctrl-btn danger" id="btnStop" title="Stop">⏹️</button>
     <button class="ctrl-btn" id="btnShuffle" title="Shuffle">🔀</button>
+    <button class="ctrl-btn" id="btnClear" title="Clear queue">🧹</button>
     <select id="loopMode" title="Loop mode">
       <option value="off">🔁 Loop: Off</option>
       <option value="track">🔂 Loop: Track</option>
@@ -62,9 +63,6 @@
     <h3>Server settings</h3>
     <div id="settingsError" class="error-banner" hidden></div>
     <form id="settingsForm">
-      <label for="prefixInput">Text-command prefix (e.g. <code>!play</code>)</label>
-      <input type="text" id="prefixInput" maxlength="5" style="max-width: 120px;">
-
       <label for="controlModeSelect">Who can control playback</label>
       <select id="controlModeSelect">
         <option value="everyone">Everyone</option>

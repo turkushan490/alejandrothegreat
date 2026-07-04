@@ -3,8 +3,8 @@ import { getGuildSettings } from '../db.js';
 import { findInstanceForGuild } from './manager.js';
 
 // Thrown for expected, user-facing failures ("nothing is playing", bad
-// input, etc). Slash commands, prefix commands, and the web API all catch
-// this the same way and show err.message directly instead of a generic error.
+// input, etc). Slash commands and the web API both catch this the same way
+// and show err.message directly instead of a generic error.
 export class ActionError extends Error {}
 
 // Multiple bot instances can be running at once - find whichever one is
@@ -77,6 +77,16 @@ export function shuffleQueue(guildId) {
     throw new ActionError('🔀 Need at least two tracks to shuffle — add more bops. 🎶');
   }
   queue.tracks.shuffle();
+}
+
+export function clearQueue(guildId) {
+  const queue = requirePlayer(guildId).nodes.get(guildId);
+  if (!queue || queue.tracks.size === 0) {
+    throw new ActionError("🧹 Queue's already empty — nothing to clear. ✨");
+  }
+  const count = queue.tracks.size;
+  queue.tracks.clear();
+  return count;
 }
 
 export function removeTrackAt(guildId, index) {

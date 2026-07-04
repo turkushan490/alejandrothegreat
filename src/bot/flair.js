@@ -116,6 +116,13 @@ export const flair = {
       `🚮 **${title}**? Gone. Poof. `,
     ]),
 
+  cleared: (count) =>
+    pick([
+      `🧹 Wiped **${count}** track${count === 1 ? '' : 's'} from the queue. Clean slate. ✨`,
+      `🧼 Queue cleared — **${count}** gone. Fresh start. 😌`,
+      `🗑️ Cleared out **${count}** track${count === 1 ? '' : 's'}. Tidy. 💅`,
+    ]),
+
   loopSet: (mode) => {
     const map = {
       off: pick([

@@ -9,10 +9,11 @@ import * as nowplaying from './nowplaying.js';
 import * as volume from './volume.js';
 import * as shuffle from './shuffle.js';
 import * as remove from './remove.js';
+import * as clear from './clear.js';
 import * as loop from './loop.js';
 import * as dj from './dj.js';
 
-const modules = [play, pause, resume, skip, stop, queue, nowplaying, volume, shuffle, remove, loop, dj];
+const modules = [play, pause, resume, skip, stop, queue, nowplaying, volume, shuffle, remove, clear, loop, dj];
 
 export const commands = new Collection();
 for (const mod of modules) {
