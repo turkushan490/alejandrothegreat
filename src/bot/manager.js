@@ -118,7 +118,14 @@ export async function startBotInstance(botId) {
     });
     newClient.commands = commands;
 
-    const newPlayer = new Player(newClient);
+    // skipFFmpeg:false forces every source through ffmpeg transcoding. By
+    // default discord-player passes an already-Opus source (YouTube's
+    // WebM/Opus via yt-dlp) straight through without re-encoding, but those
+    // frames don't line up to Discord's 20ms Opus framing -> robotic/choppy
+    // audio on YouTube links. Spotify sounded fine only because its bridge
+    // picks an AAC/mp4 format that always gets transcoded. Forcing ffmpeg
+    // makes YouTube clean too (the host has CPU to spare).
+    const newPlayer = new Player(newClient, { skipFFmpeg: false });
     // Stream audio via yt-dlp (useYoutubeDL) instead of youtubei.js's own
     // internal client. YouTube now frequently hands youtubei.js track
     // metadata with no usable stream URL ("No valid URL to decipher"),
