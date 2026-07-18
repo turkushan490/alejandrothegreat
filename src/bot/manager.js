@@ -138,6 +138,17 @@ export async function startBotInstance(botId) {
     await newPlayer.extractors.register(AttachmentExtractor, {});
     registerPlayerEvents(newPlayer);
 
+    // Opt-in verbose diagnostics for chasing playback stutter (buffer
+    // underruns, re-buffering, voice connection jitter). Enable by setting
+    // PLAYER_DEBUG=1 on the container; leave off for normal runs.
+    if (process.env.PLAYER_DEBUG) {
+      newPlayer.on('debug', (m) => console.log('[player]', m));
+      newPlayer.events.on('debug', (queue, m) => console.log(`[queue ${queue.guild.id}]`, m));
+      newPlayer.events.on('connection', (queue) =>
+        console.log(`[voice ${queue.guild.id}] connected, ping ${queue.ping ?? '?'}ms`)
+      );
+    }
+
     newClient.once('ready', readyEvent);
     newClient.on('interactionCreate', interactionCreateEvent);
 
