@@ -49,26 +49,6 @@
         </div>
         <p class="muted" style="margin-top:6px">In Discord: Settings → Advanced → Developer Mode ON, then right-click a user → <strong>Copy User ID</strong>.</p>
       </form>
-
-      <h2 style="margin-top:24px">YouTube cookies</h2>
-      <p class="muted">YouTube now blocks bots with <em>"Sign in to confirm you're not a bot"</em>. Pasting a cookie from a (throwaway) Google account fixes that and makes playback reliable. <strong id="ytCookieStatus"></strong></p>
-      <div class="callout" style="margin:10px 0">
-        <div class="callout-title">How to get it</div>
-        <div class="callout-body">
-          1. In Chrome/Edge, install the <strong>"Get cookies.txt LOCALLY"</strong> extension.<br>
-          2. Open <a href="https://www.youtube.com" target="_blank" rel="noopener">youtube.com</a> and make sure you're <strong>logged in</strong> (use a throwaway account you don't care about).<br>
-          3. Click the extension → <strong>Export</strong> (Netscape format) → open the file → copy everything → paste below.
-        </div>
-      </div>
-      <div id="cookieError" class="error-banner" hidden></div>
-      <div id="cookieOk" class="callout good" hidden><div class="callout-body">✅ Cookie saved. Play a YouTube link to test.</div></div>
-      <form id="cookieForm">
-        <textarea id="cookieInput" rows="5" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com   TRUE   /   ..." style="width:100%; font-family:Consolas,monospace; font-size:12px; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);"></textarea>
-        <div style="display:flex; gap:10px; margin-top:8px">
-          <button type="submit" class="btn btn-discord" style="width:auto">Save cookie</button>
-          <button type="button" class="btn btn-danger" id="clearCookieBtn" style="width:auto">Remove cookie</button>
-        </div>
-      </form>
     </div>
 
     <div id="botFormSection" hidden>

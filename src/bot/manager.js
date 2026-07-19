@@ -15,7 +15,6 @@ import { commands } from './commands/index.js';
 import { registerPlayerEvents } from './events/playerEvents.js';
 import interactionCreateEvent from './events/interactionCreate.js';
 import readyEvent from './events/ready.js';
-import { createYtStream, ensureCookieFile } from './ytStream.js';
 
 // Runs once at startup so a broken audio pipeline (missing ffmpeg/opus)
 // shows up clearly in the logs instead of silently queueing tracks that
@@ -120,15 +119,8 @@ export async function startBotInstance(botId) {
     newClient.commands = commands;
 
     const newPlayer = new Player(newClient);
-    // Stream YouTube audio through our own yt-dlp call (createYtStream) rather
-    // than the extractor's built-in useYoutubeDL, so we can pass a YouTube
-    // cookie file. YouTube now bot-blocks unauthenticated yt-dlp requests
-    // ("Sign in to confirm you're not a bot"); the cookie fixes that. Without
-    // a cookie configured this behaves the same as before. youtubei.js still
-    // handles search/metadata (unaffected, its own cookie left untouched).
-    const cookiePath = ensureCookieFile();
-    console.log(`[yt] YouTube cookie ${cookiePath ? 'loaded' : 'not configured'} - ${cookiePath ? 'authenticated' : 'anonymous'} streaming`);
-    await newPlayer.extractors.register(YoutubeiExtractor, { createStream: createYtStream });
+    // Stream YouTube audio via yt-dlp (self-updates, most reliable extractor).
+    await newPlayer.extractors.register(YoutubeiExtractor, { useYoutubeDL: true });
     await newPlayer.extractors.register(SpotifyExtractor, {
       clientId: bot.spotifyClientId || undefined,
       clientSecret: bot.spotifyClientSecret || undefined,
