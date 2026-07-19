@@ -15,6 +15,7 @@ import { commands } from './commands/index.js';
 import { registerPlayerEvents } from './events/playerEvents.js';
 import interactionCreateEvent from './events/interactionCreate.js';
 import readyEvent from './events/ready.js';
+import { createYtStream, ensureCookieFile } from './ytStream.js';
 
 // Runs once at startup so a broken audio pipeline (missing ffmpeg/opus)
 // shows up clearly in the logs instead of silently queueing tracks that
@@ -119,14 +120,15 @@ export async function startBotInstance(botId) {
     newClient.commands = commands;
 
     const newPlayer = new Player(newClient);
-    // Stream audio via yt-dlp (useYoutubeDL) instead of youtubei.js's own
-    // internal client. YouTube now frequently hands youtubei.js track
-    // metadata with no usable stream URL ("No valid URL to decipher"),
-    // which is silent from Discord's side - the bot joins voice, queues the
-    // track, and plays nothing. yt-dlp reliably extracts a real audio URL
-    // and self-updates on startup, so it keeps working as YouTube changes.
-    // youtubei.js is still used for search/metadata, just not for streaming.
-    await newPlayer.extractors.register(YoutubeiExtractor, { useYoutubeDL: true });
+    // Stream YouTube audio through our own yt-dlp call (createYtStream) rather
+    // than the extractor's built-in useYoutubeDL, so we can pass a YouTube
+    // cookie file. YouTube now bot-blocks unauthenticated yt-dlp requests
+    // ("Sign in to confirm you're not a bot"); the cookie fixes that. Without
+    // a cookie configured this behaves the same as before. youtubei.js still
+    // handles search/metadata (unaffected, its own cookie left untouched).
+    const cookiePath = ensureCookieFile();
+    console.log(`[yt] YouTube cookie ${cookiePath ? 'loaded' : 'not configured'} - ${cookiePath ? 'authenticated' : 'anonymous'} streaming`);
+    await newPlayer.extractors.register(YoutubeiExtractor, { createStream: createYtStream });
     await newPlayer.extractors.register(SpotifyExtractor, {
       clientId: bot.spotifyClientId || undefined,
       clientSecret: bot.spotifyClientSecret || undefined,

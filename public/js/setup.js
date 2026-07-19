@@ -111,10 +111,49 @@
 
     showOnly(botsSection);
     await renderAdmins();
+    await renderCookieStatus();
   }
 
   const escA = (s) =>
     String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  async function renderCookieStatus() {
+    try {
+      const { configured, preview } = await api('/api/setup/youtube-cookie');
+      document.getElementById('ytCookieStatus').textContent = configured
+        ? `Currently: cookie active (${preview}).`
+        : 'Currently: no cookie (anonymous — may get blocked).';
+    } catch {
+      /* not admin yet */
+    }
+  }
+
+  document.getElementById('cookieForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('cookieError');
+    const ok = document.getElementById('cookieOk');
+    err.hidden = true;
+    ok.hidden = true;
+    try {
+      await api('/api/setup/youtube-cookie', {
+        method: 'POST',
+        body: JSON.stringify({ cookie: document.getElementById('cookieInput').value }),
+      });
+      document.getElementById('cookieInput').value = '';
+      ok.hidden = false;
+      await renderCookieStatus();
+    } catch (e2) {
+      err.textContent = e2.message;
+      err.hidden = false;
+    }
+  });
+
+  document.getElementById('clearCookieBtn').addEventListener('click', async () => {
+    await api('/api/setup/youtube-cookie', { method: 'POST', body: JSON.stringify({ cookie: '' }) });
+    document.getElementById('cookieInput').value = '';
+    document.getElementById('cookieOk').hidden = true;
+    await renderCookieStatus();
+  });
 
   async function renderAdmins() {
     const list = document.getElementById('adminList');

@@ -44,6 +44,12 @@ db.exec(`
   );
 `);
 
+// Add columns introduced after the initial schema (safe on existing DBs).
+const appConfigCols = db.prepare('PRAGMA table_info(app_config)').all().map((c) => c.name);
+if (!appConfigCols.includes('youtube_cookie')) {
+  db.exec('ALTER TABLE app_config ADD COLUMN youtube_cookie TEXT');
+}
+
 // --- app-level config: session secret (auto-generated) + admin password ---
 // Defined early since the one-time migration below needs it.
 
@@ -63,6 +69,16 @@ export function getAdminPasswordHash() {
 
 export function setAdminPasswordHash(hash) {
   db.prepare('UPDATE app_config SET admin_password_hash = ? WHERE id = 1').run(hash);
+}
+
+// YouTube cookies (Netscape cookies.txt contents) - authenticates yt-dlp so
+// YouTube stops the "confirm you're not a bot" blocking. Global for all bots.
+export function getYoutubeCookie() {
+  return db.prepare('SELECT youtube_cookie FROM app_config WHERE id = 1').get()?.youtube_cookie || null;
+}
+
+export function setYoutubeCookie(text) {
+  db.prepare('UPDATE app_config SET youtube_cookie = ? WHERE id = 1').run(text || null);
 }
 
 // --- guild settings ---

@@ -8,14 +8,17 @@ import {
   deleteBot,
   getAdminPasswordHash,
   getBot,
+  getYoutubeCookie,
   isAppConfigured,
   isDiscordAdmin,
   listAdmins,
   listBots,
   removeAdmin,
   setAdminPasswordHash,
+  setYoutubeCookie,
   updateBot,
 } from '../../db.js';
+import { ensureCookieFile } from '../../bot/ytStream.js';
 import { hashPassword, verifyPassword } from '../adminAuth.js';
 import { redirectUriFromRequest } from '../oauth.js';
 
@@ -316,4 +319,23 @@ setupRouter.post('/admins', requireAdmin, (req, res) => {
 setupRouter.delete('/admins/:id', requireAdmin, (req, res) => {
   removeAdmin(req.params.id);
   res.json({ ok: true });
+});
+
+// --- YouTube cookie (authenticates yt-dlp against YouTube's bot-blocking) ---
+
+setupRouter.get('/youtube-cookie', requireAdmin, (req, res) => {
+  const cookie = getYoutubeCookie();
+  res.json({ configured: Boolean(cookie), preview: cookie ? `${cookie.trim().split('\n').length} lines saved` : '' });
+});
+
+setupRouter.post('/youtube-cookie', requireAdmin, (req, res) => {
+  const text = String(req.body.cookie ?? '');
+  const trimmed = text.trim();
+  if (trimmed && !/# Netscape HTTP Cookie File|\.youtube\.com/i.test(trimmed)) {
+    res.status(400).json({ error: "That doesn't look like a YouTube cookies.txt file (Netscape format). Export it with a 'Get cookies.txt' browser extension while on youtube.com." });
+    return;
+  }
+  setYoutubeCookie(trimmed || null);
+  ensureCookieFile(); // rewrite the file now so it takes effect on the next stream
+  res.json({ ok: true, configured: Boolean(trimmed) });
 });
