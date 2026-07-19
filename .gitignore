@@ -4,3 +4,6 @@ data/
 *.log
 npm-debug.log*
 .DS_Store
+
+# local ssh helper (temporary, not for repo)
+ssh_run.mjs
