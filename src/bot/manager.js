@@ -132,6 +132,14 @@ export async function startBotInstance(botId) {
     await newPlayer.extractors.register(AttachmentExtractor, {});
     registerPlayerEvents(newPlayer);
 
+    // Discord REST rate-limits delay outgoing requests (including the reply
+    // to a slash command), which can push it past the 3s interaction window
+    // and cause "Unknown interaction". Log them concisely so that congestion
+    // is visible instead of silent.
+    newClient.rest.on('rateLimited', (info) => {
+      console.warn(`[ratelimit] ${info.method} ${info.route} - waiting ${info.timeToReset}ms (global: ${info.global})`);
+    });
+
     // Opt-in verbose diagnostics for chasing playback stutter (buffer
     // underruns, re-buffering, voice connection jitter). Enable by setting
     // PLAYER_DEBUG=1 on the container; leave off for normal runs.
