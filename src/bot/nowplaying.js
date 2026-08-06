@@ -1,11 +1,14 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 
 const ACCENT = 0x58a6ff;
-const UPDATE_MS = 7000;
+const UPDATE_MS = 12000;
 
 // One live "now playing" message per guild that we keep editing with the
 // current progress + buttons, instead of spamming a new message each song.
-const sessions = new Map(); // guildId -> { channelId, messageId, timer }
+// We cache the Message object itself so periodic updates edit it directly
+// without an extra fetch each tick (halves the background REST traffic that
+// was competing with slash-command replies).
+const sessions = new Map(); // guildId -> { channelId, message, timer }
 
 // Finds a text channel the bot can post in, for web-initiated plays (which
 // have no originating chat channel) and for action announcements.
@@ -61,13 +64,7 @@ function buildButtons(paused) {
   );
 }
 
-async function fetchSessionMessage(guild, session) {
-  const channel = guild.channels.cache.get(session.channelId);
-  if (!channel) return null;
-  return channel.messages.fetch(session.messageId).catch(() => null);
-}
-
-// Called on each track start. Edits the existing live message in place if we
+// Called on each track start. Edits the cached live message in place if we
 // still have one, otherwise posts a fresh one and starts the update timer.
 export async function startNowPlaying(queue) {
   const guildId = queue.guild.id;
@@ -77,42 +74,46 @@ export async function startNowPlaying(queue) {
   const payload = { embeds: [buildEmbed(queue)], components: [buildButtons(queue.node.isPaused())] };
   const existing = sessions.get(guildId);
 
-  if (existing) {
-    const msg = await fetchSessionMessage(queue.guild, existing);
-    if (msg) {
-      await msg.edit(payload).catch(() => {});
+  if (existing?.message) {
+    try {
+      await existing.message.edit(payload);
       existing.channelId = channel.id;
       return;
+    } catch {
+      clearInterval(existing.timer);
+      sessions.delete(guildId);
     }
-    clearInterval(existing.timer);
-    sessions.delete(guildId);
   }
 
   try {
-    const msg = await channel.send(payload);
+    const message = await channel.send(payload);
     const timer = setInterval(() => {
       updateNowPlaying(guildId).catch(() => {});
     }, UPDATE_MS);
     timer.unref?.();
-    sessions.set(guildId, { channelId: channel.id, messageId: msg.id, timer });
+    sessions.set(guildId, { channelId: channel.id, message, timer });
   } catch {
     /* posting is best-effort */
   }
 }
 
-// Refreshes the live message's progress bar / pause state. Needs the player
-// instance, so it looks the queue up via the manager.
+// Refreshes the cached live message's progress bar / pause state. Edits the
+// cached Message directly - no fetch. Needs the player instance, so it looks
+// the queue up via the manager.
 export async function updateNowPlaying(guildId) {
   const session = sessions.get(guildId);
-  if (!session) return;
+  if (!session?.message) return;
   const { findInstanceForGuild } = await import('./manager.js');
   const instance = findInstanceForGuild(guildId);
   const queue = instance?.player.nodes.get(guildId);
   if (!queue || !queue.currentTrack) return;
-  const guild = instance.client.guilds.cache.get(guildId);
-  const msg = await fetchSessionMessage(guild, session);
-  if (!msg) return;
-  await msg.edit({ embeds: [buildEmbed(queue)], components: [buildButtons(queue.node.isPaused())] }).catch(() => {});
+  try {
+    await session.message.edit({ embeds: [buildEmbed(queue)], components: [buildButtons(queue.node.isPaused())] });
+  } catch {
+    /* message may have been deleted - drop the session so we re-post next song */
+    clearInterval(session.timer);
+    sessions.delete(guildId);
+  }
 }
 
 // Called when playback ends: stop the timer and strip the buttons off the
@@ -122,10 +123,9 @@ export async function teardownNowPlaying(guild) {
   if (!session) return;
   clearInterval(session.timer);
   sessions.delete(guild.id);
-  const msg = await fetchSessionMessage(guild, session);
-  if (msg) {
-    const embed = EmbedBuilder.from(msg.embeds[0] || {}).setColor(0x6e7681).setAuthor({ name: '⏹ Playback ended' });
-    await msg.edit({ embeds: [embed], components: [] }).catch(() => {});
+  if (session.message) {
+    const embed = EmbedBuilder.from(session.message.embeds[0] || {}).setColor(0x6e7681).setAuthor({ name: '⏹ Playback ended' });
+    await session.message.edit({ embeds: [embed], components: [] }).catch(() => {});
   }
 }
 
