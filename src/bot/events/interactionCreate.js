@@ -83,27 +83,39 @@ export default async function interactionCreate(interaction) {
   if (!command) return;
 
   if (!interaction.guild) {
-    await interaction.reply({ content: flair.serverOnly(), ephemeral: true });
+    await interaction.reply({ content: flair.serverOnly(), ephemeral: true }).catch(() => {});
     return;
   }
 
   if (CONTROL_COMMANDS.has(interaction.commandName) && !canControl(interaction.member)) {
-    await interaction.reply({ content: flair.noPermission(), ephemeral: true });
+    await interaction.reply({ content: flair.noPermission(), ephemeral: true }).catch(() => {});
     return;
   }
 
   try {
     await command.execute(interaction);
   } catch (err) {
+    // Unknown interaction (10062) means Discord already expired this
+    // interaction (e.g. the bot was slow to respond right after a restart).
+    // Trying to reply again would just throw another uncaught error.
+    if (err?.code === 10062) {
+      console.warn(`[bot] /${interaction.commandName}: interaction expired before we could respond (bot was likely busy/starting).`);
+      return;
+    }
     const message = err instanceof ActionError ? err.message : flair.genericError();
     if (!(err instanceof ActionError)) {
       console.error(`[bot] error running /${interaction.commandName}:`, err);
     }
-    const payload = { content: message, ephemeral: true };
-    if (interaction.deferred || interaction.replied) {
-      await interaction.followUp(payload);
-    } else {
-      await interaction.reply(payload);
+    // Replying can itself fail if the interaction died - never let that throw.
+    try {
+      const payload = { content: message, ephemeral: true };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(payload);
+      } else {
+        await interaction.reply(payload);
+      }
+    } catch {
+      /* interaction gone - nothing we can do */
     }
   }
 }
