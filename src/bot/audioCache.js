@@ -65,9 +65,10 @@ async function ensureDownloaded(track, cookieFile) {
 
   const videoUrl = `https://youtu.be/${id}`;
   const outputTemplate = path.join(CACHE_DIR, `${id}.%(ext)s`);
+  // 'bestaudio' already selects an audio-only format (no video), kept in its
+  // native container - no re-encode, fast.
   await ytdl(videoUrl, {
-    format: track.live ? 'best[height<=360]' : 'bestaudio', // audio-only, no video
-    extractAudio: false, // keep the native audio container (fast, no re-encode)
+    format: track.live ? 'best[height<=360]' : 'bestaudio',
     jsRuntimes: 'node',
     output: outputTemplate,
     noPlaylist: true,
