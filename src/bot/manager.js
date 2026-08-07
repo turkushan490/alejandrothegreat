@@ -11,6 +11,7 @@ import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { Player } from 'discord-player';
 import { YoutubeiExtractor } from 'discord-player-youtubei';
 import { getBot, listBots } from '../db.js';
+import { cacheInfo, createCachedStream } from './audioCache.js';
 import { commands } from './commands/index.js';
 import { registerPlayerEvents } from './events/playerEvents.js';
 import interactionCreateEvent from './events/interactionCreate.js';
@@ -119,8 +120,12 @@ export async function startBotInstance(botId) {
     newClient.commands = commands;
 
     const newPlayer = new Player(newClient);
-    // Stream YouTube audio via yt-dlp (self-updates, most reliable extractor).
-    await newPlayer.extractors.register(YoutubeiExtractor, { useYoutubeDL: true });
+    // Download-then-play: our own createStream downloads the audio-only file
+    // via yt-dlp and plays it from disk (smooth, and cached tracks replay
+    // without re-hitting YouTube). See src/bot/audioCache.js.
+    const ci = cacheInfo();
+    console.log(`[audio] cache dir ${ci.dir} (${ci.count}/${ci.max} files)`);
+    await newPlayer.extractors.register(YoutubeiExtractor, { createStream: createCachedStream(undefined) });
     await newPlayer.extractors.register(SpotifyExtractor, {
       clientId: bot.spotifyClientId || undefined,
       clientSecret: bot.spotifyClientSecret || undefined,
