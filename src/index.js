@@ -1,4 +1,5 @@
 import { startAllEnabledBots } from './bot/manager.js';
+import { ensureQuotesFile } from './bot/quotes.js';
 import { config } from './config.js';
 import { createWebServer } from './web/app.js';
 
@@ -15,6 +16,8 @@ process.on('unhandledRejection', (err) => {
 });
 
 async function main() {
+  ensureQuotesFile();
+
   const server = createWebServer();
   server.listen(config.port, () => {
     console.log(`[web] Dashboard listening on port ${config.port}`);

@@ -3,22 +3,14 @@
 // pools of lines so he rarely repeats himself. All user-facing text lives
 // here so slash + prefix commands stay in character.
 
+import { randomQueuedLine } from './quotes.js';
+
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 export const flair = {
-  queued: (title, author) =>
-    pick([
-      `😏 Ooh, **${title}** by *${author}* — solid pick. Adding it. 🎶`,
-      `🎶 **${title}** locked in. Taste! ✨`,
-      `👀 **${title}** by *${author}*? Say less. It's in. 💫`,
-      `📥 **${title}** joins the party. Good call. 🕺`,
-      `🔥 **${title}** — oh we're VIBING now. Queued. `,
-      `✅ **${title}** by *${author}* is in the lineup. You've got ears. 👂`,
-      `😎 Sliding **${title}** into the queue like it's nothing. `,
-      `💅 **${title}**? Bold. Iconic. Added. `,
-      `🎧 Cued up **${title}**. Sit back. `,
-      `⭐ **${title}** by *${author}* — chef's kiss. In the queue. `,
-    ]),
+  // Reaction pulled from the user-editable queued-lines.txt, with the track
+  // shown underneath as subtext so you still see what was added.
+  queued: (title, author) => `${randomQueuedLine()}\n-# 🎶 ${title} — ${author}`,
 
   queuedPlaylist: (title, count) =>
     pick([
