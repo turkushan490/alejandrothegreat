@@ -112,6 +112,22 @@ code {
   gap: 8px;
 }
 .brand:hover { text-decoration: none; color: var(--accent); }
+.brand img { border-radius: 6px; }
+
+/* persistent center nav (same on every page) */
+.topnav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.topnav a {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+  transition: color .15s, background .15s;
+}
+.topnav a:hover { color: var(--text); background: var(--surface-hi); text-decoration: none; }
+.topnav a.active { color: var(--text); background: var(--surface-hi); }
+
 .user-area { display: flex; align-items: center; gap: 10px; }
 .user-area .muted { font-size: 14px; }
 
@@ -332,7 +348,7 @@ input[type="range"] { accent-color: var(--accent); cursor: pointer; }
 }
 
 /* --- forms / setup --- */
-.setup-card { max-width: 600px; width: 100%; text-align: left; }
+.setup-card { max-width: 600px; width: 100%; margin: 0 auto; text-align: left; }
 .setup-card h1 { color: var(--text); font-size: 26px; font-weight: 600; margin-bottom: 8px; }
 .setup-card h2 { color: var(--text); font-size: 20px; font-weight: 600; margin-bottom: 4px; }
 
@@ -504,6 +520,12 @@ button[type="submit"] {
   border-radius: 8px;
   margin-bottom: 16px;
   font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .topbar { flex-wrap: wrap; gap: 8px; row-gap: 6px; }
+  .topnav { order: 3; width: 100%; justify-content: center; }
+  .topnav a { padding: 6px 10px; }
 }
 
 @media (max-width: 600px) {

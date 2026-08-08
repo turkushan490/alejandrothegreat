@@ -8,7 +8,12 @@
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<div class="center-screen">
+<header class="topbar">
+  <a class="brand" href="/"><img src="/favicon.png" alt="" width="26" height="26"> Alejandrothegreat</a>
+  <nav class="topnav" id="topnav"></nav>
+  <div class="user-area" id="userArea"></div>
+</header>
+<main class="container">
   <div class="card setup-card">
     <h1>Alejandrothegreat setup</h1>
     <p class="subtitle">Run one or more Discord bots from this dashboard. Everything is stored in the bot's own database, no config files to edit.</p>
@@ -123,7 +128,7 @@
       <p><button type="button" class="btn" id="backToBotsBtn">Back to bot list</button></p>
     </div>
   </div>
-</div>
+</main>
 <script src="/js/app.js"></script>
 <script src="/js/setup.js"></script>
 </body>

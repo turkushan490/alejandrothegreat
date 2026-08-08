@@ -1,15 +1,9 @@
 (async () => {
-  const esc = (s) =>
-    String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const auth = await authReady;
+  const status = auth.status;
 
   // If the app isn't set up yet, this is a fresh install - send the very
   // first visitor straight to the setup wizard.
-  let status;
-  try {
-    status = await api('/api/setup/status');
-  } catch {
-    status = null;
-  }
   if (status && !status.configured) {
     window.location.href = '/setup.html';
     return;
@@ -29,21 +23,12 @@
     });
   }
 
-  // If already signed in, swap the top-right button for their name + a
-  // dashboard link.
-  try {
-    const { user, isAdmin } = await api('/auth/me');
-    const area = document.getElementById('userArea');
-    area.innerHTML = `<span class="muted">${esc(user.username)}</span>
-      <a class="btn" href="/dashboard.html">Dashboard</a>
-      ${isAdmin ? '<a class="btn" href="/setup.html">Manage</a>' : ''}
-      <button class="btn" id="logoutBtn">Logout</button>`;
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await api('/auth/logout', { method: 'POST' });
-      window.location.reload();
-    });
-    document.getElementById('dashLink').hidden = false;
-  } catch {
-    // Not signed in - leave the default "Sign in with Discord" button.
+  // Signed in: swap the hero "Sign in" button for the "Open dashboard" link.
+  // (The top bar itself is rendered by app.js.)
+  if (auth.user) {
+    const dash = document.getElementById('dashLink');
+    if (dash) dash.hidden = false;
+    const heroSignIn = document.getElementById('heroSignIn');
+    if (heroSignIn) heroSignIn.hidden = true;
   }
 })();

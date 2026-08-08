@@ -9,7 +9,8 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="/"><img src="/favicon.png" alt="" width="26" height="26" style="border-radius:6px;vertical-align:middle"> Alejandrothegreat</a>
+  <a class="brand" href="/"><img src="/favicon.png" alt="" width="26" height="26"> Alejandrothegreat</a>
+  <nav class="topnav" id="topnav"></nav>
   <div class="user-area" id="userArea">
     <a class="btn btn-discord" href="/auth/login">Sign in with Discord</a>
   </div>
@@ -23,7 +24,7 @@
       <p class="hero-tagline">A cheeky Discord music bot with a web dashboard. 🎶</p>
       <p class="muted">Paste a Spotify link, a YouTube link, or just a song name — he'll find it and play it. Control everything from Discord or right here in your browser.</p>
       <div class="hero-actions">
-        <a class="btn btn-discord" href="/auth/login">Sign in with Discord to control it</a>
+        <a class="btn btn-discord" id="heroSignIn" href="/auth/login">Sign in with Discord to control it</a>
         <a class="btn" id="dashLink" href="/dashboard.html" hidden>Open dashboard →</a>
       </div>
     </div>
