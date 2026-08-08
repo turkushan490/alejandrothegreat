@@ -41,9 +41,9 @@ On first launch the site sends you straight to the **setup wizard**
 
 1. **A Discord application** — [discord.com/developers/applications](https://discord.com/developers/applications) → New Application. Each bot you add needs its own separate application/token - Discord bot tokens are always one-per-application.
    - Under **Bot**, reset the token and copy it.
-   - Under **Bot**, enable **Server Members Intent** and **Message Content Intent** (the second one is required for `!`-prefix text commands).
+   - Under **Bot**, enable **Server Members Intent** (used to check who has the DJ role).
    - Under **OAuth2 → General**, copy the Client ID and Client Secret.
-   - Under **OAuth2 → General → Redirects**, add the exact redirect URI shown in the setup wizard (defaults to `http://<your-host>:3005/auth/discord/callback`).
+   - Under **OAuth2 → General → Redirects**, add your redirect URI(s) — see [Login & redirect URIs](#login--redirect-uris) below (this is the #1 cause of login errors).
 2. **A Spotify application (optional but recommended)** — [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → Create app. No redirect URI needed. Copy the Client ID and Client Secret. Without this, Spotify link/playlist resolution still works but with lower rate limits. Each bot can use a different Spotify app, or you can reuse the same one.
 3. **An admin password** you choose yourself, only asked once for the first bot — this protects the setup page so nobody else can add, edit, or remove bots later.
 
@@ -59,6 +59,41 @@ just that one.
 To add another bot, edit an existing one's credentials, disable one
 temporarily, or remove one entirely, go back to `/setup.html`, enter your
 admin password, and manage the list from there.
+
+## Login & redirect URIs
+
+Signing in with Discord (the "Sign in with Discord" button) uses OAuth2,
+and Discord **only** allows redirects to URLs you've pre-registered. If you
+see **`Invalid OAuth2 redirect_uri`**, that URL isn't on the allow-list.
+
+The bot builds the redirect URI from **how you open the site**, so whatever
+address you use in the browser must be registered in Discord. In the Discord
+Developer Portal → your login bot → **OAuth2 → General → Redirects**, add one
+entry per way you reach the dashboard, each ending in `/auth/discord/callback`:
+
+- Local IP: `http://192.168.0.6:3005/auth/discord/callback`
+- A domain (via reverse proxy): `https://bot.example.com/auth/discord/callback`
+
+You can register several — add all the addresses you use. Then click **Save
+Changes**, wait ~10 seconds, and log in again. Tip: the home page shows the
+exact URL the bot is currently sending (in the "Admin note" box) so you can
+copy it verbatim.
+
+## Audio cache (how many songs to keep & where)
+
+Songs are **downloaded once and played from disk** — smoother than
+live-streaming, and replaying a track never re-hits YouTube (which also means
+fewer requests toward YouTube's bot-blocking). Only the audio is downloaded,
+no video.
+
+- **How many to keep:** set it in the dashboard — `/setup.html` → **Audio
+  cache** → *Max songs to keep* (default **30**). When the cache is full, the
+  least-recently-played songs are deleted. There's also a **Clear cache now**
+  button. (You can also set the initial default with the `AUDIO_CACHE_MAX`
+  environment variable.)
+- **Where it's stored:** inside the container at `/app/data/audio-cache/`,
+  which on Unraid is **`/mnt/user/appdata/alejandrothegreat/audio-cache/`**.
+  Files are named `<video-id>.webm` (audio-only).
 
 ## Slash commands
 

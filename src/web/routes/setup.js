@@ -7,6 +7,7 @@ import {
   createBot,
   deleteBot,
   getAdminPasswordHash,
+  getAudioCacheMax,
   getBot,
   isAppConfigured,
   isDiscordAdmin,
@@ -14,8 +15,10 @@ import {
   listBots,
   removeAdmin,
   setAdminPasswordHash,
+  setAudioCacheMax,
   updateBot,
 } from '../../db.js';
+import { cacheInfo, clearCache } from '../../bot/audioCache.js';
 import { hashPassword, verifyPassword } from '../adminAuth.js';
 import { redirectUriFromRequest } from '../oauth.js';
 
@@ -316,4 +319,26 @@ setupRouter.post('/admins', requireAdmin, (req, res) => {
 setupRouter.delete('/admins/:id', requireAdmin, (req, res) => {
   removeAdmin(req.params.id);
   res.json({ ok: true });
+});
+
+// --- audio cache (how many downloaded songs to keep, and where) ---
+
+setupRouter.get('/audio-cache', requireAdmin, (req, res) => {
+  const info = cacheInfo();
+  res.json({ max: getAudioCacheMax(), count: info.count, dir: info.dir });
+});
+
+setupRouter.post('/audio-cache', requireAdmin, (req, res) => {
+  const max = Number(req.body.max);
+  if (!Number.isFinite(max) || max < 1 || max > 1000) {
+    res.status(400).json({ error: 'Enter a number between 1 and 1000.' });
+    return;
+  }
+  const saved = setAudioCacheMax(max);
+  res.json({ ok: true, max: saved });
+});
+
+setupRouter.post('/audio-cache/clear', requireAdmin, (req, res) => {
+  const removed = clearCache();
+  res.json({ ok: true, removed });
 });

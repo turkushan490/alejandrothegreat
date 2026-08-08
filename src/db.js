@@ -44,6 +44,14 @@ db.exec(`
   );
 `);
 
+// Add columns introduced after the initial schema (safe on existing DBs).
+{
+  const cols = db.prepare('PRAGMA table_info(app_config)').all().map((c) => c.name);
+  if (!cols.includes('audio_cache_max')) {
+    db.exec('ALTER TABLE app_config ADD COLUMN audio_cache_max INTEGER');
+  }
+}
+
 // --- app-level config: session secret (auto-generated) + admin password ---
 // Defined early since the one-time migration below needs it.
 
@@ -59,6 +67,21 @@ export const sessionSecret = ensureAppConfig().session_secret;
 
 export function getAdminPasswordHash() {
   return db.prepare('SELECT admin_password_hash FROM app_config WHERE id = 1').get()?.admin_password_hash || null;
+}
+
+// Max number of downloaded audio files to keep. GUI-configurable; falls back
+// to the AUDIO_CACHE_MAX env var, then 30.
+export function getAudioCacheMax() {
+  const stored = db.prepare('SELECT audio_cache_max FROM app_config WHERE id = 1').get()?.audio_cache_max;
+  if (Number.isInteger(stored) && stored > 0) return stored;
+  const env = parseInt(process.env.AUDIO_CACHE_MAX || '', 10);
+  return Number.isInteger(env) && env > 0 ? env : 30;
+}
+
+export function setAudioCacheMax(n) {
+  const val = Math.max(1, Math.min(1000, Math.floor(Number(n))));
+  db.prepare('UPDATE app_config SET audio_cache_max = ? WHERE id = 1').run(val);
+  return val;
 }
 
 export function setAdminPasswordHash(hash) {

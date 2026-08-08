@@ -2,15 +2,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ytdl from 'youtube-dl-exec';
 import { config } from '../config.js';
+import { getAudioCacheMax } from '../db.js';
 
 // Download-then-play cache: instead of live-streaming YouTube (which stutters
 // and re-hits YouTube every play), we download the audio-only file once, then
 // play it from disk. Replaying a cached track never touches YouTube again.
 //
-// Max number of cached files is configurable (AUDIO_CACHE_MAX, default 30);
-// when exceeded, the least-recently-played files are deleted.
+// Max number of cached files is set in the dashboard (getAudioCacheMax, which
+// falls back to the AUDIO_CACHE_MAX env var, then 30); when exceeded, the
+// least-recently-played files are deleted.
 const CACHE_DIR = path.join(config.dataDir, 'audio-cache');
-const MAX_FILES = Math.max(1, parseInt(process.env.AUDIO_CACHE_MAX || '30', 10));
 
 fs.mkdirSync(CACHE_DIR, { recursive: true });
 
@@ -33,9 +34,10 @@ function findCachedFile(id) {
   }
 }
 
-// Keep only the newest MAX_FILES by last-access (mtime), delete the rest.
+// Keep only the newest N (dashboard-configurable) by last-access, delete rest.
 function pruneCache() {
   try {
+    const max = getAudioCacheMax();
     const files = fs
       .readdirSync(CACHE_DIR)
       .filter((f) => !f.endsWith('.part'))
@@ -44,7 +46,7 @@ function pruneCache() {
         return { full, atime: fs.statSync(full).atimeMs };
       })
       .sort((a, b) => b.atime - a.atime); // newest first
-    for (const stale of files.slice(MAX_FILES)) {
+    for (const stale of files.slice(max)) {
       fs.unlink(stale.full, () => {});
     }
   } catch {
@@ -99,5 +101,19 @@ export function cacheInfo() {
   } catch {
     /* ignore */
   }
-  return { dir: CACHE_DIR, count, max: MAX_FILES };
+  return { dir: CACHE_DIR, count, max: getAudioCacheMax() };
+}
+
+// Delete every cached file (dashboard "clear cache" action).
+export function clearCache() {
+  let removed = 0;
+  try {
+    for (const f of fs.readdirSync(CACHE_DIR)) {
+      fs.unlinkSync(path.join(CACHE_DIR, f));
+      removed++;
+    }
+  } catch {
+    /* best-effort */
+  }
+  return removed;
 }

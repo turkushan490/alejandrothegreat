@@ -49,6 +49,20 @@
         </div>
         <p class="muted" style="margin-top:6px">In Discord: Settings → Advanced → Developer Mode ON, then right-click a user → <strong>Copy User ID</strong>.</p>
       </form>
+
+      <h2 style="margin-top:24px">Audio cache</h2>
+      <p class="muted">Songs are downloaded once and played from disk (smooth, and replays don't re-hit YouTube). Choose how many to keep — the least-recently-played are deleted when full.</p>
+      <div id="cacheError" class="error-banner" hidden></div>
+      <div id="cacheOk" class="callout good" hidden><div class="callout-body">✅ Saved.</div></div>
+      <form id="cacheForm">
+        <label for="cacheMax">Max songs to keep</label>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+          <input type="number" id="cacheMax" min="1" max="1000" style="max-width:120px">
+          <button type="submit" class="btn btn-discord" style="width:auto">Save</button>
+          <button type="button" class="btn btn-danger" id="clearCacheBtn" style="width:auto">Clear cache now</button>
+        </div>
+      </form>
+      <p class="muted" id="cacheStatus" style="margin-top:8px"></p>
     </div>
 
     <div id="botFormSection" hidden>
@@ -62,7 +76,7 @@
           <legend>Discord application</legend>
           <p class="muted">
             Create one at <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications</a>.
-            Under the Bot tab, enable <strong>Server Members Intent</strong> and <strong>Message Content Intent</strong> (needed for the dashboard and <code>!</code> commands).
+            Under the Bot tab, enable <strong>Server Members Intent</strong> (used to check who has the DJ role).
             Each bot needs its own separate Discord application/token.
           </p>
           <label for="discordToken">Bot token</label>

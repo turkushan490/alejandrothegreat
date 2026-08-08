@@ -111,10 +111,44 @@
 
     showOnly(botsSection);
     await renderAdmins();
+    await renderCache();
   }
 
   const escA = (s) =>
     String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  async function renderCache() {
+    try {
+      const { max, count, dir } = await api('/api/setup/audio-cache');
+      document.getElementById('cacheMax').value = max;
+      document.getElementById('cacheStatus').innerHTML =
+        `Currently <strong>${count}</strong> of ${max} saved. Files live at <code>${escA(dir)}</code> (on Unraid: <code>/mnt/user/appdata/alejandrothegreat/audio-cache</code>).`;
+    } catch {
+      /* not admin */
+    }
+  }
+
+  document.getElementById('cacheForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('cacheError');
+    const ok = document.getElementById('cacheOk');
+    err.hidden = true;
+    ok.hidden = true;
+    try {
+      await api('/api/setup/audio-cache', { method: 'POST', body: JSON.stringify({ max: Number(document.getElementById('cacheMax').value) }) });
+      ok.hidden = false;
+      await renderCache();
+    } catch (e2) {
+      err.textContent = e2.message;
+      err.hidden = false;
+    }
+  });
+
+  document.getElementById('clearCacheBtn').addEventListener('click', async () => {
+    if (!confirm('Delete all downloaded songs from the cache?')) return;
+    await api('/api/setup/audio-cache/clear', { method: 'POST' });
+    await renderCache();
+  });
 
   async function renderAdmins() {
     const list = document.getElementById('adminList');
