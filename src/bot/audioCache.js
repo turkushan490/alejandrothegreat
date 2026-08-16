@@ -13,7 +13,27 @@ import { getAudioCacheMax } from '../db.js';
 // least-recently-played files are deleted.
 const CACHE_DIR = path.join(config.dataDir, 'audio-cache');
 
+// A single stuck yt-dlp (e.g. a livestream, or YouTube throttling to a crawl)
+// used to hang the whole queue - the bot would just sit there "dead". Cap it.
+const DOWNLOAD_TIMEOUT_MS = 90_000;
+const DOWNLOAD_ATTEMPTS = 2; // outer re-invocations on hard failure
+
 fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+// Files currently being read into a voice connection. These must never be
+// pruned out from under a playing track, and we de-dupe concurrent downloads
+// of the same video so two yt-dlp processes don't fight over one output path.
+const inUse = new Map(); // filePath -> refcount
+const inFlight = new Map(); // videoId -> Promise<filePath>
+
+function markInUse(file) {
+  inUse.set(file, (inUse.get(file) || 0) + 1);
+}
+function releaseInUse(file) {
+  const n = (inUse.get(file) || 0) - 1;
+  if (n <= 0) inUse.delete(file);
+  else inUse.set(file, n);
+}
 
 function extractVideoId(url) {
   try {
@@ -34,7 +54,8 @@ function findCachedFile(id) {
   }
 }
 
-// Keep only the newest N (dashboard-configurable) by last-access, delete rest.
+// Keep only the newest N (dashboard-configurable) by last-access, delete rest -
+// but never delete a file that's currently being played.
 function pruneCache() {
   try {
     const max = getAudioCacheMax();
@@ -47,6 +68,7 @@ function pruneCache() {
       })
       .sort((a, b) => b.atime - a.atime); // newest first
     for (const stale of files.slice(max)) {
+      if (inUse.has(stale.full)) continue; // don't yank a playing track
       fs.unlink(stale.full, () => {});
     }
   } catch {
@@ -54,8 +76,40 @@ function pruneCache() {
   }
 }
 
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Runs yt-dlp once for this id. Resolves to the downloaded file path, or
+// throws if yt-dlp fails / times out.
+async function runDownload(id, track, cookieFile) {
+  const videoUrl = `https://youtu.be/${id}`;
+  const outputTemplate = path.join(CACHE_DIR, `${id}.%(ext)s`);
+  // 'bestaudio' already selects an audio-only format (no video), kept in its
+  // native container - no re-encode, fast. yt-dlp's own retries smooth over
+  // the transient network hiccups that used to skip random songs.
+  await ytdl(
+    videoUrl,
+    {
+      format: track.live ? 'best[height<=360]' : 'bestaudio',
+      jsRuntimes: 'node',
+      output: outputTemplate,
+      noPlaylist: true,
+      noWarnings: true,
+      noProgress: true,
+      retries: 3,
+      fragmentRetries: 3,
+      socketTimeout: 20,
+      ...(cookieFile ? { cookies: cookieFile } : {}),
+    },
+    { timeout: DOWNLOAD_TIMEOUT_MS, killSignal: 'SIGKILL' }
+  );
+  const file = findCachedFile(id);
+  if (!file) throw new Error('yt-dlp finished but produced no file');
+  return file;
+}
+
 // Ensures the track's audio is downloaded (audio-only) and returns the file
-// path. Cache hit -> returns immediately. Cache miss -> downloads first.
+// path. Cache hit -> returns immediately. Cache miss -> downloads (with a
+// couple of retries) first. Concurrent calls for the same id share one download.
 async function ensureDownloaded(track, cookieFile) {
   const id = extractVideoId(track.url);
 
@@ -65,32 +119,49 @@ async function ensureDownloaded(track, cookieFile) {
     return existing;
   }
 
-  const videoUrl = `https://youtu.be/${id}`;
-  const outputTemplate = path.join(CACHE_DIR, `${id}.%(ext)s`);
-  // 'bestaudio' already selects an audio-only format (no video), kept in its
-  // native container - no re-encode, fast.
-  await ytdl(videoUrl, {
-    format: track.live ? 'best[height<=360]' : 'bestaudio',
-    jsRuntimes: 'node',
-    output: outputTemplate,
-    noPlaylist: true,
-    noWarnings: true,
-    noProgress: true,
-    ...(cookieFile ? { cookies: cookieFile } : {}),
-  });
+  if (inFlight.has(id)) return inFlight.get(id);
 
-  const file = findCachedFile(id);
-  pruneCache();
-  return file;
+  const job = (async () => {
+    let lastErr;
+    for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+      try {
+        const file = await runDownload(id, track, cookieFile);
+        pruneCache();
+        return file;
+      } catch (err) {
+        lastErr = err;
+        // Clean up any half-written .part so the retry starts fresh.
+        for (const f of fs.readdirSync(CACHE_DIR)) {
+          if (f.startsWith(`${id}.`) && f.endsWith('.part')) fs.unlink(path.join(CACHE_DIR, f), () => {});
+        }
+        console.warn(`[audio] download attempt ${attempt}/${DOWNLOAD_ATTEMPTS} failed for ${id}: ${err.shortMessage || err.message}`);
+        if (attempt < DOWNLOAD_ATTEMPTS) await wait(1000);
+      }
+    }
+    throw lastErr;
+  })();
+
+  inFlight.set(id, job);
+  try {
+    return await job;
+  } finally {
+    inFlight.delete(id);
+  }
 }
 
 // createStream for the Youtubei extractor: download audio-only, then hand
-// discord-player a read stream of the local file.
+// discord-player a read stream of the local file. The file is marked in-use
+// for the life of the stream so pruning can't delete it mid-song.
 export function createCachedStream(cookieFile) {
   return async (track) => {
     const file = await ensureDownloaded(track, cookieFile);
     if (!file) throw new Error('audio download failed');
-    return fs.createReadStream(file);
+    markInUse(file);
+    const stream = fs.createReadStream(file);
+    const release = () => releaseInUse(file);
+    stream.once('close', release);
+    stream.once('error', release);
+    return stream;
   };
 }
 
@@ -104,12 +175,15 @@ export function cacheInfo() {
   return { dir: CACHE_DIR, count, max: getAudioCacheMax() };
 }
 
-// Delete every cached file (dashboard "clear cache" action).
+// Delete every cached file (dashboard "clear cache" action). Skips any file
+// that's currently playing.
 export function clearCache() {
   let removed = 0;
   try {
     for (const f of fs.readdirSync(CACHE_DIR)) {
-      fs.unlinkSync(path.join(CACHE_DIR, f));
+      const full = path.join(CACHE_DIR, f);
+      if (inUse.has(full)) continue;
+      fs.unlinkSync(full);
       removed++;
     }
   } catch {

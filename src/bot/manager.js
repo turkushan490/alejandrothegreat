@@ -25,6 +25,17 @@ async function logAudioPipelineDiagnostics() {
   if (diagnosticsLogged) return;
   diagnosticsLogged = true;
 
+  // youtubei.js logs a flood of harmless "[YOUTUBEJS][Text]: Unable to find
+  // matching run ... Skipping..." WARNINGs while parsing search results. That
+  // "Skipping" is about internal text parsing, not skipping songs - but it
+  // buries the errors that actually matter. Drop to ERROR level.
+  try {
+    const { Log } = await import('youtubei.js');
+    Log.setLevel(Log.Level.ERROR);
+  } catch {
+    /* non-fatal - just noisier logs */
+  }
+
   const resolved = FFmpeg.resolveSafe();
   if (resolved) {
     console.log(`[audio] ffmpeg resolved: ${resolved.name} (${resolved.path}), version ${resolved.version}`);
