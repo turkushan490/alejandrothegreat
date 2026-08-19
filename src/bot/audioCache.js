@@ -16,7 +16,13 @@ const CACHE_DIR = path.join(config.dataDir, 'audio-cache');
 // A single stuck yt-dlp (e.g. a livestream, or YouTube throttling to a crawl)
 // used to hang the whole queue - the bot would just sit there "dead". Cap it.
 const DOWNLOAD_TIMEOUT_MS = 90_000;
-const DOWNLOAD_ATTEMPTS = 2; // outer re-invocations on hard failure
+// YouTube 403-blocks the default "web" client's media URLs on many hosts
+// (datacenter + flagged residential IPs). The "android" client's URLs still
+// download fine - verified on the server that every other client 403s or
+// exposes no audio format. Try android first, keep a couple of alternates as
+// fallback in case YouTube shifts which client works, then android once more
+// to ride out a transient hiccup on the good one.
+const DOWNLOAD_CLIENTS = ['android', 'android_vr', 'ios', 'tv_embedded', 'android'];
 
 fs.mkdirSync(CACHE_DIR, { recursive: true });
 
@@ -80,16 +86,17 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Runs yt-dlp once for this id. Resolves to the downloaded file path, or
 // throws if yt-dlp fails / times out.
-async function runDownload(id, track, cookieFile) {
+async function runDownload(id, track, cookieFile, playerClient) {
   const videoUrl = `https://youtu.be/${id}`;
   const outputTemplate = path.join(CACHE_DIR, `${id}.%(ext)s`);
   // 'bestaudio' already selects an audio-only format (no video), kept in its
-  // native container - no re-encode, fast. yt-dlp's own retries smooth over
-  // the transient network hiccups that used to skip random songs.
+  // native container - no re-encode, fast. player_client picks a YouTube
+  // client whose media URLs aren't 403'd; yt-dlp's own retries smooth over
+  // transient network hiccups.
   await ytdl(
     videoUrl,
     {
-      format: track.live ? 'best[height<=360]' : 'bestaudio',
+      format: track.live ? 'best[height<=360]/best' : 'bestaudio/best',
       jsRuntimes: 'node',
       output: outputTemplate,
       noPlaylist: true,
@@ -98,6 +105,7 @@ async function runDownload(id, track, cookieFile) {
       retries: 3,
       fragmentRetries: 3,
       socketTimeout: 20,
+      extractorArgs: `youtube:player_client=${playerClient}`,
       ...(cookieFile ? { cookies: cookieFile } : {}),
     },
     { timeout: DOWNLOAD_TIMEOUT_MS, killSignal: 'SIGKILL' }
@@ -123,19 +131,24 @@ async function ensureDownloaded(track, cookieFile) {
 
   const job = (async () => {
     let lastErr;
-    for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
+    for (let i = 0; i < DOWNLOAD_CLIENTS.length; i++) {
+      const client = DOWNLOAD_CLIENTS[i];
       try {
-        const file = await runDownload(id, track, cookieFile);
+        const file = await runDownload(id, track, cookieFile, client);
         pruneCache();
         return file;
       } catch (err) {
         lastErr = err;
-        // Clean up any half-written .part so the retry starts fresh.
-        for (const f of fs.readdirSync(CACHE_DIR)) {
-          if (f.startsWith(`${id}.`) && f.endsWith('.part')) fs.unlink(path.join(CACHE_DIR, f), () => {});
+        // Clean up any half-written .part so the next try starts fresh.
+        try {
+          for (const f of fs.readdirSync(CACHE_DIR)) {
+            if (f.startsWith(`${id}.`) && f.endsWith('.part')) fs.unlink(path.join(CACHE_DIR, f), () => {});
+          }
+        } catch {
+          /* ignore */
         }
-        console.warn(`[audio] download attempt ${attempt}/${DOWNLOAD_ATTEMPTS} failed for ${id}: ${err.shortMessage || err.message}`);
-        if (attempt < DOWNLOAD_ATTEMPTS) await wait(1000);
+        console.warn(`[audio] download failed for ${id} via ${client}: ${err.shortMessage || err.message}`);
+        if (i < DOWNLOAD_CLIENTS.length - 1) await wait(600);
       }
     }
     throw lastErr;
